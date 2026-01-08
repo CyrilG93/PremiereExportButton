@@ -449,7 +449,8 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     var escapedPresetPath = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     var script = "exportToAME('" + escapedOutputPath + "', '" + escapedPresetPath + "')";
-
+    debugLog('Export Script: ' + script, 'info'); // Log the explicit script sent to ExtendScript
+    debugLog('Calling exportToAME...', 'info');
     csInterface.evalScript(script, function (result) {
         try {
             var exportResult = JSON.parse(result);
