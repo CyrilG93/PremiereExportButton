@@ -84,10 +84,18 @@ function hasVideoTracks() {
             });
         }
 
-        // Simple check
         var hasVideo = false;
-        if (seq.videoTracks && seq.videoTracks.numTracks > 0) {
-            hasVideo = true;
+
+        // Loop through video tracks to see if any have clips
+        if (seq.videoTracks) {
+            for (var i = 0; i < seq.videoTracks.numTracks; i++) {
+                var track = seq.videoTracks[i];
+                // Check if track has clips and if clip count is > 0
+                if (track.clips && track.clips.numItems > 0) {
+                    hasVideo = true;
+                    break;
+                }
+            }
         }
 
         return JSON.stringify({
