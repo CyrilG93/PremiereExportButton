@@ -207,13 +207,18 @@ function checkVideoAndExport(sequenceName) {
 function determineOutputPath(sequenceName, presetPath, hasVideo) {
     var downloadEnabled = document.getElementById('download-checkbox').checked;
 
+    // Clean sequence name for use as filename
+    var cleanName = sequenceName.replace(/[<>:"/\\|?*]/g, '_');
+
     if (downloadEnabled) {
         // Export to Downloads folder
         csInterface.evalScript('getSystemInfo()', function (result) {
             try {
                 var info = JSON.parse(result);
-                var outputPath = info.downloadsPath + info.separator + sequenceName;
-                executeExport(outputPath, presetPath, hasVideo);
+                var folderPath = info.downloadsPath;
+
+                // Get versioned filename
+                getVersionedFilenameAndExport(folderPath, cleanName, presetPath, hasVideo);
             } catch (e) {
                 setStatus('Error getting downloads path', 'error');
             }
@@ -229,12 +234,8 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
                     return;
                 }
 
-                // Get system info for separator
-                csInterface.evalScript('getSystemInfo()', function (sysResult) {
-                    var sysInfo = JSON.parse(sysResult);
-                    var outputPath = pathInfo.path + sysInfo.separator + sequenceName;
-                    executeExport(outputPath, presetPath, hasVideo);
-                });
+                // Get versioned filename
+                getVersionedFilenameAndExport(pathInfo.path, cleanName, presetPath, hasVideo);
 
             } catch (e) {
                 setStatus('Error: ' + e.message, 'error');
@@ -244,12 +245,47 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
 }
 
 /**
+ * Get the next versioned filename and proceed with export
+ * @param {string} folderPath - Path to the export folder
+ * @param {string} baseName - Base name (sequence name)
+ * @param {string} presetPath - Path to the preset file
+ * @param {boolean} hasVideo - Whether the sequence has video
+ */
+function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVideo) {
+    // Escape paths for ExtendScript
+    var escapedFolderPath = folderPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var escapedBaseName = baseName.replace(/'/g, "\\'");
+
+    var script = "getNextVersionedFilename('" + escapedFolderPath + "', '" + escapedBaseName + "', '')";
+
+    csInterface.evalScript(script, function (result) {
+        try {
+            var versionInfo = JSON.parse(result);
+
+            if (!versionInfo.success) {
+                setStatus(versionInfo.error || 'Error getting version', 'error');
+                return;
+            }
+
+            // Use the versioned full path
+            var outputPath = versionInfo.fullPath;
+            setStatus('Exporting ' + versionInfo.filename + '...', 'warning');
+            executeExport(outputPath, presetPath, hasVideo, versionInfo.filename);
+
+        } catch (e) {
+            setStatus('Error: ' + e.message, 'error');
+        }
+    });
+}
+
+/**
  * Execute the export via Adobe Media Encoder
  * @param {string} outputPath - Full output path (without extension)
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether export includes video
+ * @param {string} versionedName - The versioned filename for display
  */
-function executeExport(outputPath, presetPath, hasVideo) {
+function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     setStatus('Starting export...', 'warning');
 
     // Escape paths for ExtendScript
@@ -264,7 +300,8 @@ function executeExport(outputPath, presetPath, hasVideo) {
 
             if (exportResult.success) {
                 var type = hasVideo ? 'Video' : 'Audio';
-                setStatus(type + ' export started!', 'success');
+                var displayName = versionedName || 'export';
+                setStatus(displayName + ' started!', 'success');
             } else {
                 setStatus(exportResult.error || 'Export failed', 'error');
             }

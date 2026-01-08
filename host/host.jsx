@@ -345,3 +345,87 @@ function verifyPresetExists(presetPath) {
         });
     }
 }
+
+/**
+ * Get the next available versioned filename
+ * Checks existing files in the folder and returns the next version number
+ * Format: SequenceName_V1, SequenceName_V2, etc.
+ * 
+ * @param {string} folderPath - Path to the export folder
+ * @param {string} baseName - Base name of the file (sequence name)
+ * @param {string} extension - File extension to check (e.g., "mp4", "wav")
+ * @returns {string} JSON string with versioned filename
+ */
+function getNextVersionedFilename(folderPath, baseName, extension) {
+    try {
+        var folder = new Folder(folderPath);
+        if (!folder.exists) {
+            // Folder doesn't exist, start with V1
+            return JSON.stringify({
+                success: true,
+                version: 1,
+                filename: baseName + "_V1",
+                fullPath: folderPath + ($.os.indexOf("Windows") !== -1 ? "\\" : "/") + baseName + "_V1"
+            });
+        }
+
+        // Get all files in the folder
+        var files = folder.getFiles();
+        var maxVersion = 0;
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var separator = isWindows ? "\\" : "/";
+
+        // Pattern to match: baseName_V{number}.extension
+        // We need to check for various common extensions
+        var extensions = ["mp4", "mov", "avi", "mkv", "wav", "mp3", "aac", "m4a"];
+        if (extension) {
+            extensions = [extension.toLowerCase().replace(".", "")];
+        }
+
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file instanceof File) {
+                var fileName = file.name;
+
+                // Check if filename matches pattern: baseName_V{number}.{ext}
+                // Case insensitive comparison for the base name
+                var baseNameLower = baseName.toLowerCase();
+                var fileNameLower = fileName.toLowerCase();
+
+                // Check if it starts with baseName_V
+                if (fileNameLower.indexOf(baseNameLower + "_v") === 0) {
+                    // Extract the version number
+                    var afterPrefix = fileName.substring(baseName.length + 2); // Skip "baseName_V"
+
+                    // Find where the number ends (at the dot before extension)
+                    var dotIndex = afterPrefix.lastIndexOf(".");
+                    if (dotIndex > 0) {
+                        var versionStr = afterPrefix.substring(0, dotIndex);
+                        var versionNum = parseInt(versionStr, 10);
+
+                        if (!isNaN(versionNum) && versionNum > maxVersion) {
+                            maxVersion = versionNum;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Next version is maxVersion + 1
+        var nextVersion = maxVersion + 1;
+        var versionedName = baseName + "_V" + nextVersion;
+
+        return JSON.stringify({
+            success: true,
+            version: nextVersion,
+            filename: versionedName,
+            fullPath: folderPath + separator + versionedName
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            error: e.toString()
+        });
+    }
+}
