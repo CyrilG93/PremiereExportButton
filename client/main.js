@@ -37,6 +37,46 @@ function init() {
 
     // Set initial status
     setStatus('Ready');
+
+    // Log init
+    debugLog('Extension initialized', 'info');
+
+    // Test ExtendScript connection
+    testExtendScript();
+}
+
+/**
+ * Debug log function
+ * @param {string} message - Message to log
+ * @param {string} type - Log type: 'info', 'error', 'success'
+ */
+function debugLog(message, type) {
+    var logEl = document.getElementById('debug-log');
+    if (!logEl) return;
+
+    var entry = document.createElement('div');
+    entry.className = 'log-entry log-' + (type || 'info');
+
+    var timestamp = new Date().toLocaleTimeString();
+    entry.textContent = '[' + timestamp + '] ' + message;
+
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+/**
+ * Test ExtendScript connection
+ */
+function testExtendScript() {
+    debugLog('Testing ExtendScript connection...', 'info');
+
+    csInterface.evalScript('typeof app', function (result) {
+        debugLog('typeof app = ' + result, result === 'object' ? 'success' : 'error');
+    });
+
+    csInterface.evalScript('app.project ? "project exists" : "no project"', function (result) {
+        debugLog('Project check: ' + result, 'info');
+    });
 }
 
 /**
@@ -108,6 +148,12 @@ function setupEventListeners() {
             closeSettingsModal();
         }
     });
+
+    // Clear log button
+    document.getElementById('clear-log').addEventListener('click', function () {
+        document.getElementById('debug-log').innerHTML = '';
+        debugLog('Log cleared', 'info');
+    });
 }
 
 /**
@@ -145,30 +191,37 @@ function getSystemInfo() {
  */
 function handleExport() {
     setStatus('Checking sequence...', 'warning');
+    debugLog('Export button clicked', 'info');
 
     // First check if there's an active sequence
+    debugLog('Calling getActiveSequence()...', 'info');
     csInterface.evalScript('getActiveSequence()', function (result) {
+        debugLog('getActiveSequence result: ' + result, result ? 'info' : 'error');
+
         try {
             // Check for ExtendScript errors
             if (!result || result === 'undefined' || result.indexOf('Error') === 0 || result.indexOf('EvalScript') === 0) {
-                setStatus('Script error - check console', 'error');
-                console.error('ExtendScript error:', result);
+                setStatus('Script error - check log', 'error');
+                debugLog('ExtendScript error: ' + result, 'error');
                 return;
             }
 
             var seqInfo = JSON.parse(result);
+            debugLog('Parsed sequence info: ' + JSON.stringify(seqInfo), 'success');
 
             if (!seqInfo.success) {
                 setStatus(seqInfo.error || 'No active sequence', 'error');
+                debugLog('No active sequence: ' + seqInfo.error, 'error');
                 return;
             }
 
+            debugLog('Sequence name: ' + seqInfo.name, 'success');
             // Check if sequence has video tracks
             checkVideoAndExport(seqInfo.name);
 
         } catch (e) {
             setStatus('Error: ' + e.message, 'error');
-            console.error('Parse error:', e, 'Result was:', result);
+            debugLog('Parse error: ' + e.message + ' | Raw result: ' + result, 'error');
         }
     });
 }
