@@ -38,13 +38,34 @@ function init() {
     // Log init
     debugLog('Extension initialized', 'info');
 
-    // Load the ExtendScript file first
-    loadJSX(function () {
-        // Get system info to determine OS
-        getSystemInfo();
+    // Wait a bit for Premiere to be ready, then test ExtendScript
+    debugLog('Waiting 2s for Premiere Pro...', 'info');
+    setTimeout(function () {
+        // Test basic ExtendScript first
+        testBasicExtendScript();
+    }, 2000);
+}
 
-        // Test ExtendScript connection
-        testExtendScript();
+/**
+ * Test the most basic ExtendScript operations
+ */
+function testBasicExtendScript() {
+    debugLog('Testing basic ExtendScript...', 'info');
+
+    // Test 1: Simple math (should always work)
+    csInterface.evalScript('1+1', function (result) {
+        debugLog('Test 1+1 = ' + result, result === '2' ? 'success' : 'error');
+
+        if (result === '2') {
+            // ExtendScript works, now load host.jsx
+            loadJSX(function () {
+                getSystemInfo();
+                testExtendScript();
+            });
+        } else {
+            debugLog('ExtendScript engine not responding!', 'error');
+            debugLog('Please check: Window > Extensions > Export Button is from Premiere Pro (not another app)', 'error');
+        }
     });
 }
 
