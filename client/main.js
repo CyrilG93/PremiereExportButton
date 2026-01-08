@@ -380,37 +380,47 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
 }
 
 /**
- * Get the next versioned filename and proceed with export
+ * Get the/**
+ * Get versioned filename and export
  * @param {string} folderPath - Path to the export folder
- * @param {string} baseName - Base name (sequence name)
+ * @param {string} baseName - Base name of the file
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether the sequence has video
  */
 function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVideo) {
-    // Escape paths for ExtendScript
-    var escapedFolderPath = folderPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    var escapedBaseName = baseName.replace(/'/g, "\\'");
+    // Determine extension based on preset (simplified for now)
+    var extension = hasVideo ? "mp4" : "wav";
 
-    var script = "getNextVersionedFilename('" + escapedFolderPath + "', '" + escapedBaseName + "', '')";
+    // TEMPORARY: Skip versioning logic until host.jsx is stable
+    // We will just assume V1 for now to test the export pipeline
 
-    csInterface.evalScript(script, function (result) {
+    var versionedName = baseName + "_V1";
+    var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
+    var fullPath = folderPath + sep + versionedName; // No extension, AME adds it
+
+    debugLog('Exporting to: ' + fullPath, 'info');
+
+    // Execute
+    executeExport(fullPath, presetPath, hasVideo, versionedName);
+
+    /*
+    csInterface.evalScript('getNextVersionedFilename("' + folderPath.replace(/\\/g, '\\\\') + '", "' + baseName + '", "' + extension + '")', function(result) {
         try {
-            var versionInfo = JSON.parse(result);
-
-            if (!versionInfo.success) {
-                setStatus(versionInfo.error || 'Error getting version', 'error');
-                return;
+            var info = JSON.parse(result);
+            if (info.success) {
+                executeExport(info.fullPath, presetPath, hasVideo, info.filename);
+            } else {
+                // Fallback
+                var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
+                var fullPath = folderPath + sep + baseName + "_V1";
+                executeExport(fullPath, presetPath, hasVideo, baseName + "_V1");
             }
-
-            // Use the versioned full path
-            var outputPath = versionInfo.fullPath;
-            setStatus('Exporting ' + versionInfo.filename + '...', 'warning');
-            executeExport(outputPath, presetPath, hasVideo, versionInfo.filename);
-
         } catch (e) {
-            setStatus('Error: ' + e.message, 'error');
+            setStatus('Error getting version', 'error');
+            debugLog('Version error: ' + result, 'error');
         }
     });
+    */
 }
 
 /**
