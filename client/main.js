@@ -32,17 +32,50 @@ function init() {
     // Setup event listeners
     setupEventListeners();
 
-    // Get system info to determine OS
-    getSystemInfo();
-
     // Set initial status
     setStatus('Ready');
 
     // Log init
     debugLog('Extension initialized', 'info');
 
-    // Test ExtendScript connection
-    testExtendScript();
+    // Load the ExtendScript file first
+    loadJSX(function () {
+        // Get system info to determine OS
+        getSystemInfo();
+
+        // Test ExtendScript connection
+        testExtendScript();
+    });
+}
+
+/**
+ * Load the ExtendScript (jsx) file
+ * @param {function} callback - Called after script is loaded
+ */
+function loadJSX(callback) {
+    debugLog('Loading host.jsx...', 'info');
+
+    var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
+    var jsxPath = extensionPath + '/host/host.jsx';
+
+    debugLog('JSX path: ' + jsxPath, 'info');
+
+    // Read and evaluate the jsx file
+    var result = window.cep.fs.readFile(jsxPath);
+
+    if (result.err === 0) {
+        csInterface.evalScript(result.data, function (evalResult) {
+            if (evalResult === 'EvalScript error.') {
+                debugLog('Error evaluating host.jsx: ' + evalResult, 'error');
+            } else {
+                debugLog('host.jsx loaded successfully', 'success');
+            }
+            if (callback) callback();
+        });
+    } else {
+        debugLog('Error reading host.jsx: ' + result.err, 'error');
+        if (callback) callback();
+    }
 }
 
 /**
@@ -76,6 +109,11 @@ function testExtendScript() {
 
     csInterface.evalScript('app.project ? "project exists" : "no project"', function (result) {
         debugLog('Project check: ' + result, 'info');
+    });
+
+    // Test if our functions are available
+    csInterface.evalScript('typeof getActiveSequence', function (result) {
+        debugLog('getActiveSequence available: ' + result, result === 'function' ? 'success' : 'error');
     });
 }
 
@@ -155,28 +193,27 @@ function setupEventListeners() {
         debugLog('Log cleared', 'info');
     });
 
-    // Copy log button
+    // Copy log button - use execCommand as clipboard API doesn't work in CEP
     document.getElementById('copy-log').addEventListener('click', function () {
         var logEl = document.getElementById('debug-log');
         var logText = logEl.innerText || logEl.textContent;
 
-        // Use clipboard API
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(logText).then(function () {
-                debugLog('Log copied to clipboard!', 'success');
-            }).catch(function (err) {
-                debugLog('Copy failed: ' + err, 'error');
-            });
-        } else {
-            // Fallback for older browsers
-            var textarea = document.createElement('textarea');
-            textarea.value = logText;
-            document.body.appendChild(textarea);
-            textarea.select();
+        // Create textarea, copy, and remove
+        var textarea = document.createElement('textarea');
+        textarea.value = logText;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
             document.execCommand('copy');
-            document.body.removeChild(textarea);
-            debugLog('Log copied to clipboard!', 'success');
+            debugLog('Log copied!', 'success');
+        } catch (err) {
+            debugLog('Copy failed: ' + err, 'error');
         }
+
+        document.body.removeChild(textarea);
     });
 }
 
