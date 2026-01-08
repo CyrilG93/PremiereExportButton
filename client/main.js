@@ -60,22 +60,14 @@ function loadJSX(callback) {
 
     debugLog('JSX path: ' + jsxPath, 'info');
 
-    // Read and evaluate the jsx file
-    var result = window.cep.fs.readFile(jsxPath);
+    // Use $.evalFile() to load the JSX file - this is the standard ExtendScript method
+    var evalScript = '$.evalFile("' + jsxPath.replace(/\\/g, '/') + '")';
+    debugLog('Running: ' + evalScript, 'info');
 
-    if (result.err === 0) {
-        csInterface.evalScript(result.data, function (evalResult) {
-            if (evalResult === 'EvalScript error.') {
-                debugLog('Error evaluating host.jsx: ' + evalResult, 'error');
-            } else {
-                debugLog('host.jsx loaded successfully', 'success');
-            }
-            if (callback) callback();
-        });
-    } else {
-        debugLog('Error reading host.jsx: ' + result.err, 'error');
+    csInterface.evalScript(evalScript, function (evalResult) {
+        debugLog('evalFile result: ' + evalResult, evalResult && evalResult !== 'undefined' ? 'success' : 'error');
         if (callback) callback();
-    }
+    });
 }
 
 /**
