@@ -104,7 +104,6 @@ If the EXPORTS folder doesn't exist, it will be created automatically.
 ## Author
 
 **CyrilG93**
-- Email: cyril.vellas@bluewin.ch
 - GitHub: [@CyrilG93](https://github.com/CyrilG93)
 
 ## License
