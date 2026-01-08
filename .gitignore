@@ -1,0 +1,28 @@
+# Git ignore for Export Button extension
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies (if any)
+node_modules/
+
+# Build artifacts
+*.zxp

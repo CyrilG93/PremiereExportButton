@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Button</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="main-container">
+        <!-- Main Export Button -->
+        <button id="export-btn" class="export-button" title="Export via Adobe Media Encoder">
+            <svg viewBox="0 0 24 24" class="export-icon">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </svg>
+        </button>
+
+        <!-- Controls Row -->
+        <div class="controls-row">
+            <!-- Download Checkbox -->
+            <label class="checkbox-container" title="Export to Downloads folder">
+                <input type="checkbox" id="download-checkbox">
+                <span class="checkmark">
+                    <svg viewBox="0 0 24 24" class="check-icon">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                </span>
+            </label>
+
+            <!-- Settings Button -->
+            <button id="settings-btn" class="settings-button" title="Settings">
+                <svg viewBox="0 0 24 24" class="settings-icon">
+                    <path
+                        d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22l-1.92 3.32c-.12.21-.07.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Status Message -->
+        <div id="status" class="status"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export Settings</h3>
+                <button id="close-modal" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label for="video-preset">Video + Audio Preset:</label>
+                    <input type="text" id="video-preset" placeholder="Path to .epr preset file">
+                    <button class="browse-btn" data-target="video-preset">Browse</button>
+                </div>
+                <div class="setting-group">
+                    <label for="audio-preset">Audio Only Preset:</label>
+                    <input type="text" id="audio-preset" placeholder="Path to .epr preset file">
+                    <button class="browse-btn" data-target="audio-preset">Browse</button>
+                </div>
+                <div class="modal-footer">
+                    <button id="save-settings" class="save-button">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="CSInterface.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
