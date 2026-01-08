@@ -99,6 +99,18 @@ function loadJSX(callback) {
  */
 function debugLog(message, type) {
     console.log('[' + type + '] ' + message);
+
+    var logEl = document.getElementById('debug-log');
+    if (!logEl) return;
+
+    var entry = document.createElement('div');
+    entry.className = 'log-entry log-' + (type || 'info');
+
+    var timestamp = new Date().toLocaleTimeString();
+    entry.textContent = '[' + timestamp + '] ' + message;
+
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
 /**
@@ -191,6 +203,35 @@ function setupEventListeners() {
         }
     });
 
+
+    // Clear log button
+    document.getElementById('clear-log').addEventListener('click', function () {
+        document.getElementById('debug-log').innerHTML = '';
+        debugLog('Log cleared', 'info');
+    });
+
+    // Copy log button - use execCommand as clipboard API doesn't work in CEP
+    document.getElementById('copy-log').addEventListener('click', function () {
+        var logEl = document.getElementById('debug-log');
+        var logText = logEl.innerText || logEl.textContent;
+
+        // Create textarea, copy, and remove
+        var textarea = document.createElement('textarea');
+        textarea.value = logText;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+            document.execCommand('copy');
+            debugLog('Log copied!', 'success');
+        } catch (err) {
+            debugLog('Copy failed: ' + err, 'error');
+        }
+
+        document.body.removeChild(textarea);
+    });
 
 }
 
