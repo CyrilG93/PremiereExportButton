@@ -22,15 +22,14 @@ body {
     user-select: none;
 }
 
-/* Main Container */
+/* Main Container - Compact layout */
 #main-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 12px;
-    min-height: 100vh;
-    gap: 10px;
+    justify-content: flex-start;
+    padding: 6px;
+    gap: 6px;
 }
 
 /* Export Button - Large Square */
@@ -76,7 +75,7 @@ body {
 .controls-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 /* Checkbox Container */
@@ -85,8 +84,8 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     position: relative;
 }
 
@@ -99,11 +98,11 @@ body {
 }
 
 .checkmark {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background-color: #333;
     border: 2px solid #555;
-    border-radius: 4px;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -120,8 +119,8 @@ body {
 }
 
 .check-icon {
-    width: 14px;
-    height: 14px;
+    width: 10px;
+    height: 10px;
     fill: white;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -133,15 +132,15 @@ body {
 
 /* Settings Button */
 .settings-button {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: transparent;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: all 0.2s ease;
 }
 
@@ -154,8 +153,8 @@ body {
 }
 
 .settings-icon {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     fill: #888;
     transition: fill 0.2s ease;
 }
@@ -166,14 +165,15 @@ body {
 
 /* Status Message */
 .status {
-    font-size: 10px;
+    font-size: 9px;
     color: #888;
     text-align: center;
-    min-height: 14px;
+    min-height: 12px;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding: 0 2px;
 }
 
 .status.success {

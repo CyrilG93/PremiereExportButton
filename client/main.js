@@ -149,6 +149,13 @@ function handleExport() {
     // First check if there's an active sequence
     csInterface.evalScript('getActiveSequence()', function (result) {
         try {
+            // Check for ExtendScript errors
+            if (!result || result === 'undefined' || result.indexOf('Error') === 0 || result.indexOf('EvalScript') === 0) {
+                setStatus('Script error - check console', 'error');
+                console.error('ExtendScript error:', result);
+                return;
+            }
+
             var seqInfo = JSON.parse(result);
 
             if (!seqInfo.success) {
@@ -161,6 +168,7 @@ function handleExport() {
 
         } catch (e) {
             setStatus('Error: ' + e.message, 'error');
+            console.error('Parse error:', e, 'Result was:', result);
         }
     });
 }
