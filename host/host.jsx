@@ -191,30 +191,7 @@ function getSequenceName() {
  */
 function exportToAME(outputPath, presetPath) {
     try {
-        // Check for Adobe Media Encoder
-        if (!app.encoder) {
-            return JSON.stringify({
-                success: false,
-                error: "Adobe Media Encoder object not found (app.encoder undefined)"
-            });
-        }
-
-        // Verify preset file exists
-        var presetFile = new File(presetPath);
-        if (!presetFile.exists) {
-            return JSON.stringify({
-                success: false,
-                error: "Preset file not found at path: " + presetPath
-            });
-        }
-
         var seq = app.project.activeSequence;
-        if (!seq) {
-            return JSON.stringify({
-                success: false,
-                error: "No active sequence found"
-            });
-        }
 
         // Queue the export to Adobe Media Encoder
         var jobID = app.encoder.encodeSequence(
@@ -235,7 +212,7 @@ function exportToAME(outputPath, presetPath) {
         } else {
             return JSON.stringify({
                 success: false,
-                error: "Failed to queue export (jobID null)"
+                error: "Failed to queue export"
             });
         }
     } catch (e) {

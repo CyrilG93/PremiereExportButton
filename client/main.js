@@ -442,16 +442,26 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
  * @param {string} versionedName - The versioned filename for display
  */
 function executeExport(outputPath, presetPath, hasVideo, versionedName) {
+    debugLog('executeExport called', 'info');
+    debugLog('Output path: ' + outputPath, 'info');
+    debugLog('Preset path: ' + presetPath, 'info');
+    debugLog('Has video: ' + hasVideo, 'info');
+
     setStatus('Starting export...', 'warning');
 
     // Escape paths for ExtendScript
     var escapedOutputPath = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var escapedPresetPath = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
+    debugLog('Escaped output: ' + escapedOutputPath, 'info');
+    debugLog('Escaped preset: ' + escapedPresetPath, 'info');
+
     var script = "exportToAME('" + escapedOutputPath + "', '" + escapedPresetPath + "')";
-    debugLog('Export Script: ' + script, 'info'); // Log the explicit script sent to ExtendScript
-    debugLog('Calling exportToAME...', 'info');
+    debugLog('Script: ' + script, 'info');
+
     csInterface.evalScript(script, function (result) {
+        debugLog('exportToAME result: ' + result, result ? 'info' : 'error');
+
         try {
             var exportResult = JSON.parse(result);
 
@@ -459,11 +469,15 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
                 var type = hasVideo ? 'Video' : 'Audio';
                 var displayName = versionedName || 'export';
                 setStatus(displayName + ' started!', 'success');
+                debugLog('Export started successfully!', 'success');
             } else {
                 setStatus(exportResult.error || 'Export failed', 'error');
+                debugLog('Export failed: ' + exportResult.error, 'error');
             }
         } catch (e) {
             setStatus('Error: ' + e.message, 'error');
+            debugLog('Parse error: ' + e.message, 'error');
+            debugLog('Raw result was: ' + result, 'error');
         }
     });
 }
