@@ -187,11 +187,41 @@ function getSequenceName() {
 }
 
 /**
- * EXPORT FILE - Simplified version (no complex path logic yet)
+ * EXPORT FILE - With Windows path normalization
  */
 function exportToAME(outputPath, presetPath) {
     try {
+        // Check if encoder is available
+        if (!app.encoder) {
+            return JSON.stringify({
+                success: false,
+                error: "Adobe Media Encoder not available. Please ensure AME is installed."
+            });
+        }
+
         var seq = app.project.activeSequence;
+        if (!seq) {
+            return JSON.stringify({
+                success: false,
+                error: "No active sequence"
+            });
+        }
+
+        // Normalize paths for Windows (convert forward slashes to backslashes)
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        if (isWindows) {
+            outputPath = outputPath.replace(/\//g, "\\");
+            presetPath = presetPath.replace(/\//g, "\\");
+        }
+
+        // Verify preset file exists
+        var presetFile = new File(presetPath);
+        if (!presetFile.exists) {
+            return JSON.stringify({
+                success: false,
+                error: "Preset file not found: " + presetPath
+            });
+        }
 
         // Queue the export to Adobe Media Encoder
         var jobID = app.encoder.encodeSequence(
@@ -212,13 +242,21 @@ function exportToAME(outputPath, presetPath) {
         } else {
             return JSON.stringify({
                 success: false,
-                error: "Failed to queue export"
+                error: "Failed to queue export. Check if AME is running."
             });
         }
     } catch (e) {
+        // More detailed error info
+        var errorDetails = e.toString();
+        if (e.message) {
+            errorDetails = e.message;
+        }
+        if (e.line) {
+            errorDetails += " (line " + e.line + ")";
+        }
         return JSON.stringify({
             success: false,
-            error: e.toString()
+            error: errorDetails
         });
     }
 }
