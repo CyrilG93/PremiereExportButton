@@ -33,7 +33,8 @@ function init() {
     setupEventListeners();
 
     // Set initial status
-    setStatus('Ready');
+    // Set initial status
+    // setStatus('Ready'); // Removed as requested
 
     // Log init
     debugLog('Extension initialized', 'info');
@@ -475,7 +476,7 @@ function setStatus(message, type) {
     if (type === 'success') {
         setTimeout(function () {
             if (statusEl.textContent === message) {
-                statusEl.textContent = 'Ready';
+                statusEl.textContent = '';
                 statusEl.className = 'status';
             }
         }, 5000);
