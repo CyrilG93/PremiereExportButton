@@ -391,36 +391,42 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
     // Determine extension based on preset (simplified for now)
     var extension = hasVideo ? "mp4" : "wav";
 
-    // TEMPORARY: Skip versioning logic until host.jsx is stable
-    // We will just assume V1 for now to test the export pipeline
-
-    var versionedName = baseName + "_V1";
+    // Check if path has trailing slash
     var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
-    var fullPath = folderPath + sep + versionedName; // No extension, AME adds it
+    // Ensure folderPath doesn't end with separator unless it's just root
+    if (folderPath.slice(-1) === sep && folderPath.length > 1) {
+        folderPath = folderPath.slice(0, -1);
+    }
 
-    debugLog('Exporting to: ' + fullPath, 'info');
+    // Call ExtendScript to get next version
+    // Escape backslashes for ExtendScript
+    var safeFolderPath = folderPath.replace(/\\/g, '\\\\');
+    // Escape single quotes in baseName
+    var safeBaseName = baseName.replace(/'/g, "\\'");
 
-    // Execute
-    executeExport(fullPath, presetPath, hasVideo, versionedName);
+    var script = "getNextVersionedFilename('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "')";
+    debugLog('Getting version...', 'info');
 
-    /*
-    csInterface.evalScript('getNextVersionedFilename("' + folderPath.replace(/\\/g, '\\\\') + '", "' + baseName + '", "' + extension + '")', function(result) {
+    csInterface.evalScript(script, function (result) {
         try {
             var info = JSON.parse(result);
             if (info.success) {
+                debugLog('Version found: ' + info.filename, 'info');
                 executeExport(info.fullPath, presetPath, hasVideo, info.filename);
             } else {
+                debugLog('Versioning error: ' + info.error, 'error');
                 // Fallback
-                var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
                 var fullPath = folderPath + sep + baseName + "_V1";
                 executeExport(fullPath, presetPath, hasVideo, baseName + "_V1");
             }
         } catch (e) {
             setStatus('Error getting version', 'error');
-            debugLog('Version error: ' + result, 'error');
+            debugLog('Version Parse Error: ' + result, 'error');
+            // Fallback
+            var fullPath = folderPath + sep + baseName + "_V1";
+            executeExport(fullPath, presetPath, hasVideo, baseName + "_V1");
         }
     });
-    */
 }
 
 /**

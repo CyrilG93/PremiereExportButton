@@ -188,3 +188,120 @@ function verifyPresetExists(presetPath) {
         });
     }
 }
+
+/**
+ * Get the EXPORTS folder path relative to the project
+ */
+function getProjectExportsPath() {
+    try {
+        if (!app.project || !app.project.path) {
+            return JSON.stringify({
+                success: false,
+                path: "",
+                error: "No project path available"
+            });
+        }
+
+        var projectPath = app.project.path;
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var separator = isWindows ? "\\" : "/";
+
+        // Simple string manipulation instead of regex
+        var parentPath = new File(projectPath).parent.fsName;
+
+        // Check for PROJET folder
+        var parentFolder = new Folder(parentPath);
+        if (parentFolder.name === "PROJET") {
+            // Go up one level
+            parentPath = parentFolder.parent.fsName;
+        }
+
+        var exportsPath = parentPath + separator + "EXPORTS";
+
+        // Create folder
+        var exportsFolder = new Folder(exportsPath);
+        if (!exportsFolder.exists) {
+            exportsFolder.create();
+        }
+
+        return JSON.stringify({
+            success: true,
+            path: exportsPath
+        });
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            path: "",
+            error: e.toString()
+        });
+    }
+}
+
+/**
+ * Get next versioned filename
+ * Format: NAME_V1.ext
+ */
+function getNextVersionedFilename(folderPath, baseName, extension) {
+    try {
+        var folder = new Folder(folderPath);
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var separator = isWindows ? "\\" : "/";
+
+        if (!folder.exists) {
+            return JSON.stringify({
+                success: true,
+                version: 1,
+                filename: baseName + "_V1",
+                fullPath: folderPath + separator + baseName + "_V1"
+            });
+        }
+
+        var files = folder.getFiles();
+        var maxVer = 0;
+
+        // Simple loop
+        for (var i = 0; i < files.length; i++) {
+            var f = files[i];
+            if (f instanceof File) {
+                var name = decodeURI(f.name); // decodeURI to handle special chars
+                var nameLower = name.toLowerCase();
+                var baseLower = baseName.toLowerCase();
+
+                // Check if starts with baseName_V
+                if (nameLower.indexOf(baseLower + "_v") === 0) {
+                    // Extract version number
+                    var rest = name.substring(baseName.length + 2); // after _V
+                    var dotIdx = rest.lastIndexOf(".");
+                    var verStr = "";
+
+                    if (dotIdx > 0) {
+                        verStr = rest.substring(0, dotIdx);
+                    } else {
+                        verStr = rest;
+                    }
+
+                    var num = parseInt(verStr);
+                    if (!isNaN(num) && num > maxVer) {
+                        maxVer = num;
+                    }
+                }
+            }
+        }
+
+        var nextVer = maxVer + 1;
+        var finalName = baseName + "_V" + nextVer;
+
+        return JSON.stringify({
+            success: true,
+            version: nextVer,
+            filename: finalName,
+            fullPath: folderPath + separator + finalName
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            error: e.toString()
+        });
+    }
+}
