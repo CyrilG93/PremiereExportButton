@@ -154,6 +154,30 @@ function setupEventListeners() {
         document.getElementById('debug-log').innerHTML = '';
         debugLog('Log cleared', 'info');
     });
+
+    // Copy log button
+    document.getElementById('copy-log').addEventListener('click', function () {
+        var logEl = document.getElementById('debug-log');
+        var logText = logEl.innerText || logEl.textContent;
+
+        // Use clipboard API
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(logText).then(function () {
+                debugLog('Log copied to clipboard!', 'success');
+            }).catch(function (err) {
+                debugLog('Copy failed: ' + err, 'error');
+            });
+        } else {
+            // Fallback for older browsers
+            var textarea = document.createElement('textarea');
+            textarea.value = logText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            debugLog('Log copied to clipboard!', 'success');
+        }
+    });
 }
 
 /**
