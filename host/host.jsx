@@ -16,8 +16,9 @@ function getSystemInfo() {
         var downloadsPath = "";
 
         if (isWindows) {
-            // Windows Downloads folder
-            downloadsPath = Folder.myDocuments.parent.fsName + "\\Downloads";
+            // Windows: Use USERPROFILE environment variable
+            var userProfile = $.getenv("USERPROFILE");
+            downloadsPath = userProfile + "\\Downloads";
         } else {
             // macOS Downloads folder
             downloadsPath = Folder("~/Downloads").fsName;
@@ -30,6 +31,49 @@ function getSystemInfo() {
         });
     } catch (e) {
         return JSON.stringify({
+            error: e.toString()
+        });
+    }
+}
+
+/**
+ * Get available AME presets from system
+ * @returns {string} JSON string with preset paths
+ */
+function getDefaultPresetPaths() {
+    try {
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var presetPaths = [];
+
+        if (isWindows) {
+            // Windows preset locations
+            var userProfile = $.getenv("USERPROFILE");
+            var userPresetsBase = userProfile + "\\Documents\\Adobe\\Adobe Media Encoder";
+
+            // Common system presets location (Program Files)
+            var systemPresets = "C:\\Program Files\\Adobe\\Adobe Media Encoder 2025\\MediaIO\\systempresets";
+
+            presetPaths.push({ type: "system", path: systemPresets });
+
+            if (Folder(userPresetsBase).exists) {
+                presetPaths.push({ type: "user", path: userPresetsBase });
+            }
+        } else {
+            // macOS preset locations
+            var systemPresets = "/Applications/Adobe Media Encoder 2025/Adobe Media Encoder 2025.app/Contents/MediaIO/systempresets";
+            var userPresets = Folder("~/Documents/Adobe/Adobe Media Encoder").fsName;
+
+            presetPaths.push({ type: "system", path: systemPresets });
+            presetPaths.push({ type: "user", path: userPresets });
+        }
+
+        return JSON.stringify({
+            success: true,
+            presetPaths: presetPaths
+        });
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
             error: e.toString()
         });
     }
