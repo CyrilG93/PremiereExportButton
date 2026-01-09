@@ -1,6 +1,6 @@
 # Export Button for Adobe Premiere Pro 25.5
 
-A simple CEP extension to quickly export the active sequence via Adobe Media Encoder.
+A simple CEP extension to quickly export sequences via Adobe Media Encoder.
 
 ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.5%2B-9999FF)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-lightgrey)
@@ -9,7 +9,10 @@ A simple CEP extension to quickly export the active sequence via Adobe Media Enc
 ## Features
 
 - **One-click export** - Export the active sequence via Adobe Media Encoder
+- **Batch export** - Select multiple sequences in the Project panel and export them all at once
+- **Auto-detect** - Automatically uses batch mode when sequences are selected, or single mode for active sequence
 - **Auto-start** - Exports start automatically without manual intervention
+- **Smart versioning** - Files are automatically versioned (_V1, _V2, _V3...)
 - **Download mode** - Option to export directly to Downloads folder
 - **Dual presets** - Separate presets for Video+Audio and Audio-only sequences
 - **Cross-platform** - Works on both macOS and Windows
@@ -17,9 +20,24 @@ A simple CEP extension to quickly export the active sequence via Adobe Media Enc
 ## Interface
 
 The panel features a minimal, compact interface:
-- **Export Button** (large square) - Exports the active sequence
+- **Export Button** (large square) - Exports sequences
 - **Checkbox** (below) - Enable to export to Downloads folder instead of project folder
 - **Settings** (gear icon) - Configure export presets
+- **Debug Panel** - Shows detailed logs for troubleshooting
+
+## How It Works
+
+### Single Export (Active Sequence)
+1. Open a sequence in the timeline
+2. Click the export button
+3. The active sequence is exported with automatic versioning
+
+### Batch Export (Multiple Sequences)
+1. In the **Project panel**, select multiple sequences (Cmd/Ctrl+click)
+2. Click the export button
+3. All selected sequences are queued and exported together
+
+The extension automatically detects if sequences are selected in the Project panel. If yes, it exports all of them. If nothing is selected, it exports the active sequence.
 
 ## Project Structure
 
@@ -35,10 +53,11 @@ If the EXPORTS folder doesn't exist, it will be created automatically.
 
 ## Export Logic
 
-1. Detects if the active sequence contains video tracks
+1. Detects if each sequence contains video clips (not just empty tracks)
 2. Uses **Video+Audio preset** if video is present
-3. Uses **Audio-only preset** if only audio tracks exist
-4. Exports to:
+3. Uses **Audio-only preset** if only audio exists
+4. Automatically versions files (_V1, _V2, _V3...)
+5. Exports to:
    - **EXPORTS folder** (default) - Located at the same level as the PROJET folder
    - **Downloads folder** - When the checkbox is enabled
 
@@ -83,7 +102,9 @@ If the EXPORTS folder doesn't exist, it will be created automatically.
 
 1. Open the panel: **Window > Extensions > Export Button**
 2. Open a project with the expected folder structure
-3. Select a sequence in the timeline
+3. Either:
+   - Select a sequence in the timeline (single export)
+   - Select multiple sequences in the Project panel (batch export)
 4. Click the export button
 
 ### Configure Presets
@@ -98,8 +119,18 @@ If the EXPORTS folder doesn't exist, it will be created automatically.
 
 ## Requirements
 
-- Adobe Premiere Pro 25.5 or later
+- Adobe Premiere Pro 15.4 or later (batch export requires this version for `getCurrentProjectViewSelection` API)
 - Adobe Media Encoder (same version)
+
+## Troubleshooting
+
+The built-in debug panel shows detailed logs. If you encounter issues:
+1. Check the debug panel for error messages
+2. Use the "Copy" button to copy logs
+3. Common issues:
+   - **Preset not found**: Check the preset path in Settings
+   - **AME not available**: Ensure Adobe Media Encoder is installed
+   - **Unknown exception**: Usually a path formatting issue on Windows
 
 ## Author
 
