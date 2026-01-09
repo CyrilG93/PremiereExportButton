@@ -588,6 +588,14 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
  * @param {number} version - Version number
  * @param {string} sequenceName - Name of the sequence
  * @returns {string} Parsed suffix
+ * 
+ * Supported tokens:
+ *   {V}   = version without padding (1, 2, 10, 100...)
+ *   {VV}  = version with 2 digits (01, 02, 10, 100...)
+ *   {VVV} = version with 3 digits (001, 002, 010, 100...)
+ *   {DATE} = current date (YYYY-MM-DD)
+ *   {TIME} = current time (HH-MM)
+ *   {SEQ}  = sequence name
  */
 function parseSuffixPattern(pattern, version, sequenceName) {
     var now = new Date();
@@ -597,8 +605,15 @@ function parseSuffixPattern(pattern, version, sequenceName) {
     var timeStr = String(now.getHours()).padStart(2, '0') + '-' +
         String(now.getMinutes()).padStart(2, '0');
 
-    var result = pattern
-        .replace(/\{V\}/gi, String(version))
+    // Replace version tokens with appropriate padding
+    // Match {V}, {VV}, {VVV}, etc. (case insensitive)
+    var result = pattern.replace(/\{(V+)\}/gi, function (match, vChars) {
+        var padLength = vChars.length;
+        return String(version).padStart(padLength, '0');
+    });
+
+    // Replace other tokens
+    result = result
         .replace(/\{DATE\}/gi, dateStr)
         .replace(/\{TIME\}/gi, timeStr)
         .replace(/\{SEQ\}/gi, sequenceName);
