@@ -1,8 +1,8 @@
 # Export Button for Adobe Premiere Pro
 
-A simple CEP extension to quickly export sequences via Adobe Media Encoder.
+A powerful CEP extension for quick, customizable exports via Adobe Media Encoder.
 
-![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.5%2B-9999FF)
+![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-15.4%2B-9999FF)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-lightgrey)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -10,44 +10,89 @@ A simple CEP extension to quickly export sequences via Adobe Media Encoder.
 
 - **One-click export** - Export the active sequence via Adobe Media Encoder
 - **Batch export** - Select multiple sequences in the Project panel and export them all
-- **Auto-detect** - Automatically uses batch mode when sequences are selected
-- **Smart versioning** - Files are automatically versioned with customizable patterns
-- **In/Out export** - Option to export only the In/Out range
-- **Custom folders** - Configure export folder name and download location
+- **Smart detection** - Automatically uses batch mode when sequences are selected
+- **Customizable naming** - Full control over filename with tokens
+- **In/Out export** - Option to export only the marked range
+- **Folder depth** - Choose how far up from the project to create the export folder
+- **Fixed folder** - Export to a specific folder when needed
 - **Dual presets** - Separate presets for Video+Audio and Audio-only sequences
 - **Cross-platform** - Works on both macOS and Windows
 
 ## Interface
 
-The panel features a minimal, compact interface:
 - **Export Button** (large square) - Exports sequences
-- **Checkbox** (below) - Enable to export to Downloads/custom folder
+- **Checkbox** - Enable to export to Fixed Folder instead of project folder
 - **Settings** (gear icon) - Configure all export options
 - **Debug Panel** - Shows detailed logs for troubleshooting
+
+---
 
 ## Settings
 
 ### Presets
-- **Video + Audio Preset** - Path to .epr preset for video exports
-- **Audio Only Preset** - Path to .epr preset for audio-only exports
+| Setting | Description |
+|---------|-------------|
+| **Video + Audio Preset** | Path to .epr preset for video exports |
+| **Audio Only Preset** | Path to .epr preset for audio-only exports |
 
 ### File Naming
-- **Suffix Pattern** - Customize filename suffix with tokens:
-  - `{V}` = Version number (1, 2, 3...)
-  - `{DATE}` = Current date (YYYY-MM-DD)
-  - `{TIME}` = Current time (HH-MM)
-  - `{SEQ}` = Sequence name
-- Examples:
-  - `_V{V}` → `SequenceName_V1.mp4` (default)
-  - `_{DATE}` → `SequenceName_2026-01-09.mp4`
-  - `_V{V}_{DATE}` → `SequenceName_V1_2026-01-09.mp4`
+| Setting | Description |
+|---------|-------------|
+| **Naming Pattern** | Full filename pattern with tokens (default: `{SEQ}_V{V}`) |
+
+**Available Tokens:**
+| Token | Example (Sequence: "MyEdit", Version: 3) |
+|-------|------------------------------------------|
+| `{SEQ}` | MyEdit |
+| `{V}` | 3 |
+| `{VV}` | 03 (zero-padded to 2 digits) |
+| `{VVV}` | 003 (zero-padded to 3 digits) |
+| `{DATE}` | 2026-01-09 |
+| `{TIME}` | 16-15 |
+
+**Pattern Examples:**
+```
+{SEQ}_V{V}        → MyEdit_V1.mp4
+{SEQ}_V{VV}       → MyEdit_V01.mp4
+{DATE}_{SEQ}      → 2026-01-09_MyEdit.mp4
+{SEQ}_{DATE}_V{V} → MyEdit_2026-01-09_V1.mp4
+```
 
 ### Export Options
-- **Export In/Out range only** - When enabled, exports only the portion between In and Out points
+| Setting | Description |
+|---------|-------------|
+| **Export In/Out range only** | Export only between In and Out points |
 
 ### Folders
-- **Export Folder Name** - Name of the export folder relative to project (default: `EXPORTS`)
-- **Download Location** - Custom path when checkbox is enabled (leave empty for default Downloads)
+| Setting | Description |
+|---------|-------------|
+| **Export Folder Name** | Name of the export folder (default: `EXPORTS`) |
+| **Folder Depth** | How many folders to go up from the project file |
+| **Fixed Folder** | Absolute path when checkbox is enabled (leave empty for Downloads) |
+
+---
+
+## Folder Depth Explained
+
+The **Folder Depth** setting controls where the export folder is created relative to your project file:
+
+```
+Project: /Movies/Client/PROJET/project.prproj
+
+Depth 0 → /Movies/Client/PROJET/EXPORTS/     (beside project)
+Depth 1 → /Movies/Client/EXPORTS/            (one folder up)
+Depth 2 → /Movies/EXPORTS/                   (two folders up)
+```
+
+**Typical workflow structure:**
+```
+00 00 PROJECT_NAME/
+├── EXPORTS/          ← Created with Depth 1
+└── PROJET/
+    └── Project.prproj
+```
+
+---
 
 ## How It Works
 
@@ -61,15 +106,7 @@ The panel features a minimal, compact interface:
 2. Click the export button
 3. All selected sequences are queued and exported together
 
-## Project Structure
-
-The extension expects this project structure:
-```
-00 00 PROJECT_NAME/
-├── EXPORTS/          ← Default export destination (customizable)
-└── PROJET/
-    └── Project.prproj
-```
+---
 
 ## Installation
 
@@ -82,17 +119,27 @@ chmod +x install_mac.sh
 ### Windows
 Double-click `install_windows.bat`
 
+---
+
 ## Requirements
 
 - Adobe Premiere Pro 15.4 or later
 - Adobe Media Encoder (same version)
 
+---
+
 ## Troubleshooting
 
 The built-in debug panel shows detailed logs. Common issues:
-- **Preset not found**: Check the preset path in Settings
-- **AME not available**: Ensure Adobe Media Encoder is installed
-- **Unknown exception**: Usually a path formatting issue on Windows
+
+| Issue | Solution |
+|-------|----------|
+| **Preset not found** | Check the preset path in Settings |
+| **AME not available** | Ensure Adobe Media Encoder is installed |
+| **Unknown exception** | Usually a path issue on Windows - check debug log |
+| **No active sequence** | Open a sequence in the timeline or select in Project panel |
+
+---
 
 ## Author
 
