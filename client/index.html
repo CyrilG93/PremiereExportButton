@@ -62,16 +62,55 @@
                 <button id="close-modal" class="close-button">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="setting-group">
-                    <label for="video-preset">Video + Audio Preset:</label>
-                    <input type="text" id="video-preset" placeholder="Path to .epr preset file">
-                    <button class="browse-btn" data-target="video-preset">Browse</button>
+                <!-- Presets Section -->
+                <div class="settings-section">
+                    <h4>Presets</h4>
+                    <div class="setting-group">
+                        <label for="video-preset">Video + Audio Preset:</label>
+                        <input type="text" id="video-preset" placeholder="Path to .epr preset file">
+                        <button class="browse-btn" data-target="video-preset">Browse</button>
+                    </div>
+                    <div class="setting-group">
+                        <label for="audio-preset">Audio Only Preset:</label>
+                        <input type="text" id="audio-preset" placeholder="Path to .epr preset file">
+                        <button class="browse-btn" data-target="audio-preset">Browse</button>
+                    </div>
                 </div>
-                <div class="setting-group">
-                    <label for="audio-preset">Audio Only Preset:</label>
-                    <input type="text" id="audio-preset" placeholder="Path to .epr preset file">
-                    <button class="browse-btn" data-target="audio-preset">Browse</button>
+
+                <!-- Naming Section -->
+                <div class="settings-section">
+                    <h4>File Naming</h4>
+                    <div class="setting-group">
+                        <label for="suffix-pattern">Suffix Pattern:</label>
+                        <input type="text" id="suffix-pattern" placeholder="_V{V}" value="_V{V}">
+                        <span class="setting-hint">Tokens: {V}=version, {DATE}, {TIME}, {SEQ}</span>
+                    </div>
                 </div>
+
+                <!-- Export Options Section -->
+                <div class="settings-section">
+                    <h4>Export Options</h4>
+                    <div class="setting-group checkbox-setting">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="inout-export">
+                            <span>Export In/Out range only</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Folders Section -->
+                <div class="settings-section">
+                    <h4>Folders</h4>
+                    <div class="setting-group">
+                        <label for="export-folder">Export Folder Name:</label>
+                        <input type="text" id="export-folder" placeholder="EXPORTS" value="EXPORTS">
+                    </div>
+                    <div class="setting-group">
+                        <label for="download-path">Download Location:</label>
+                        <input type="text" id="download-path" placeholder="~/Downloads (leave empty for default)">
+                    </div>
+                </div>
+
                 <div class="modal-footer">
                     <button id="save-settings" class="save-button">Save</button>
                 </div>

@@ -617,3 +617,197 @@ function getNextVersionedFilename(folderPath, baseName, extension) {
         });
     }
 }
+
+/**
+ * Get next version number based on custom suffix pattern
+ * Looks for files matching baseName + pattern where {V} is a number
+ * @param {string} folderPath - Path to search
+ * @param {string} baseName - Base filename
+ * @param {string} extension - File extension
+ * @param {string} suffixPattern - Pattern like "_V{V}" or "_{DATE}_{V}"
+ */
+function getNextVersionedFilenameWithPattern(folderPath, baseName, extension, suffixPattern) {
+    try {
+        var folder = new Folder(folderPath);
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var separator = isWindows ? "\\" : "/";
+
+        if (!folder.exists) {
+            return JSON.stringify({
+                success: true,
+                version: 1
+            });
+        }
+
+        var files = folder.getFiles();
+        var maxVer = 0;
+
+        // Look for files that start with baseName
+        for (var i = 0; i < files.length; i++) {
+            var f = files[i];
+            if (f instanceof File) {
+                var name = decodeURI(f.name);
+                var nameLower = name.toLowerCase();
+                var baseLower = baseName.toLowerCase();
+
+                // Check if file starts with baseName
+                if (nameLower.indexOf(baseLower) === 0) {
+                    // Extract the suffix part (after baseName, before extension)
+                    var rest = name.substring(baseName.length);
+                    var dotIdx = rest.lastIndexOf(".");
+                    if (dotIdx > 0) {
+                        rest = rest.substring(0, dotIdx);
+                    }
+
+                    // Try to find a version number in the suffix
+                    // Look for patterns like _V1, _V2, _V10, etc.
+                    var vMatch = rest.match(/_V(\d+)/i);
+                    if (vMatch && vMatch[1]) {
+                        var num = parseInt(vMatch[1]);
+                        if (!isNaN(num) && num > maxVer) {
+                            maxVer = num;
+                        }
+                    }
+                }
+            }
+        }
+
+        return JSON.stringify({
+            success: true,
+            version: maxVer + 1
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            version: 1,
+            error: e.toString()
+        });
+    }
+}
+
+/**
+ * Get exports path with custom folder name
+ * @param {string} customFolderName - Name of the export folder (default: "EXPORTS")
+ */
+function getProjectExportsPathCustom(customFolderName) {
+    try {
+        if (!customFolderName) {
+            customFolderName = "EXPORTS";
+        }
+
+        if (!app.project || !app.project.path) {
+            return JSON.stringify({
+                success: false,
+                path: "",
+                error: "No project path available"
+            });
+        }
+
+        var projectPath = app.project.path;
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var separator = isWindows ? "\\" : "/";
+
+        var parentPath = new File(projectPath).parent.fsName;
+
+        // Check for PROJET folder
+        var parentFolder = new Folder(parentPath);
+        if (parentFolder.name === "PROJET") {
+            parentPath = parentFolder.parent.fsName;
+        }
+
+        var exportsPath = parentPath + separator + customFolderName;
+
+        // Create folder if needed
+        var exportsFolder = new Folder(exportsPath);
+        if (!exportsFolder.exists) {
+            exportsFolder.create();
+        }
+
+        return JSON.stringify({
+            success: true,
+            path: exportsPath
+        });
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            path: "",
+            error: e.toString()
+        });
+    }
+}
+
+/**
+ * Export with options (In/Out support)
+ * @param {string} outputPath - Output file path
+ * @param {string} presetPath - Preset file path
+ * @param {boolean} useInOut - If true, export only In/Out range
+ */
+function exportToAMEWithOptions(outputPath, presetPath, useInOut) {
+    try {
+        if (!app.encoder) {
+            return JSON.stringify({
+                success: false,
+                error: "Adobe Media Encoder not available"
+            });
+        }
+
+        var seq = app.project.activeSequence;
+        if (!seq) {
+            return JSON.stringify({
+                success: false,
+                error: "No active sequence"
+            });
+        }
+
+        // Normalize paths for Windows
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        if (isWindows) {
+            outputPath = outputPath.replace(/\//g, "\\");
+            presetPath = presetPath.replace(/\//g, "\\");
+        }
+
+        // Verify preset
+        var presetFile = new File(presetPath);
+        if (!presetFile.exists) {
+            return JSON.stringify({
+                success: false,
+                error: "Preset file not found: " + presetPath
+            });
+        }
+
+        // encodeSequence parameter: 0 = entire sequence, 1 = work area (In/Out)
+        var rangeType = useInOut ? 1 : 0;
+
+        var jobID = app.encoder.encodeSequence(
+            seq,
+            outputPath,
+            presetPath,
+            rangeType,
+            0
+        );
+
+        if (jobID) {
+            app.encoder.startBatch();
+            return JSON.stringify({
+                success: true,
+                jobID: jobID,
+                message: "Export started"
+            });
+        } else {
+            return JSON.stringify({
+                success: false,
+                error: "Failed to queue export"
+            });
+        }
+    } catch (e) {
+        var errorDetails = e.toString();
+        if (e.message) {
+            errorDetails = e.message;
+        }
+        return JSON.stringify({
+            success: false,
+            error: errorDetails
+        });
+    }
+}

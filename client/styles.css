@@ -322,6 +322,52 @@ body {
     background: linear-gradient(180deg, #3a80c9 0%, #2569ad 100%);
 }
 
+/* Settings Sections */
+.settings-section {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #333;
+}
+
+.settings-section:last-of-type {
+    border-bottom: none;
+}
+
+.settings-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.setting-hint {
+    display: block;
+    font-size: 9px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.checkbox-setting {
+    margin-bottom: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #ccc;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
 /* Debug Panel */
 .debug-panel {
     width: 100%;

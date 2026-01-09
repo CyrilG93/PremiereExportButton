@@ -13,7 +13,11 @@ var csInterface = new CSInterface();
 var STORAGE_KEYS = {
     VIDEO_PRESET: 'exportButton_videoPreset',
     AUDIO_PRESET: 'exportButton_audioPreset',
-    DOWNLOAD_ENABLED: 'exportButton_downloadEnabled'
+    DOWNLOAD_ENABLED: 'exportButton_downloadEnabled',
+    SUFFIX_PATTERN: 'exportButton_suffixPattern',
+    INOUT_EXPORT: 'exportButton_inoutExport',
+    EXPORT_FOLDER: 'exportButton_exportFolder',
+    DOWNLOAD_PATH: 'exportButton_downloadPath'
 };
 
 // Default preset paths (will be updated based on OS)
@@ -140,10 +144,18 @@ function loadSettings() {
     var videoPreset = localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET) || '';
     var audioPreset = localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET) || '';
     var downloadEnabled = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_ENABLED) === 'true';
+    var suffixPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '_V{V}';
+    var inoutExport = localStorage.getItem(STORAGE_KEYS.INOUT_EXPORT) === 'true';
+    var exportFolder = localStorage.getItem(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
+    var downloadPath = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_PATH) || '';
 
     document.getElementById('video-preset').value = videoPreset;
     document.getElementById('audio-preset').value = audioPreset;
     document.getElementById('download-checkbox').checked = downloadEnabled;
+    document.getElementById('suffix-pattern').value = suffixPattern;
+    document.getElementById('inout-export').checked = inoutExport;
+    document.getElementById('export-folder').value = exportFolder;
+    document.getElementById('download-path').value = downloadPath;
 }
 
 /**
@@ -152,9 +164,17 @@ function loadSettings() {
 function saveSettings() {
     var videoPreset = document.getElementById('video-preset').value;
     var audioPreset = document.getElementById('audio-preset').value;
+    var suffixPattern = document.getElementById('suffix-pattern').value || '_V{V}';
+    var inoutExport = document.getElementById('inout-export').checked;
+    var exportFolder = document.getElementById('export-folder').value || 'EXPORTS';
+    var downloadPath = document.getElementById('download-path').value;
 
     localStorage.setItem(STORAGE_KEYS.VIDEO_PRESET, videoPreset);
     localStorage.setItem(STORAGE_KEYS.AUDIO_PRESET, audioPreset);
+    localStorage.setItem(STORAGE_KEYS.SUFFIX_PATTERN, suffixPattern);
+    localStorage.setItem(STORAGE_KEYS.INOUT_EXPORT, inoutExport);
+    localStorage.setItem(STORAGE_KEYS.EXPORT_FOLDER, exportFolder);
+    localStorage.setItem(STORAGE_KEYS.DOWNLOAD_PATH, downloadPath);
 
     setStatus('Settings saved', 'success');
     closeSettingsModal();
@@ -520,31 +540,39 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
     // Clean sequence name for use as filename
     var cleanName = sequenceName.replace(/[<>:"/\\|?*]/g, '_');
 
-    if (downloadEnabled) {
-        // Export to Downloads folder
-        csInterface.evalScript('getSystemInfo()', function (result) {
-            try {
-                var info = JSON.parse(result);
-                var folderPath = info.downloadsPath;
+    // Get custom settings
+    var customExportFolder = localStorage.getItem(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
+    var customDownloadPath = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_PATH) || '';
 
-                // Get versioned filename
-                getVersionedFilenameAndExport(folderPath, cleanName, presetPath, hasVideo);
-            } catch (e) {
-                setStatus('Error getting downloads path', 'error');
-            }
-        });
+    if (downloadEnabled) {
+        // Check for custom download path
+        if (customDownloadPath && customDownloadPath.trim() !== '') {
+            // Use custom download path
+            getVersionedFilenameAndExport(customDownloadPath, cleanName, presetPath, hasVideo);
+        } else {
+            // Use default Downloads folder
+            csInterface.evalScript('getSystemInfo()', function (result) {
+                try {
+                    var info = JSON.parse(result);
+                    var folderPath = info.downloadsPath;
+                    getVersionedFilenameAndExport(folderPath, cleanName, presetPath, hasVideo);
+                } catch (e) {
+                    setStatus('Error getting downloads path', 'error');
+                }
+            });
+        }
     } else {
-        // Export to project EXPORTS folder
-        csInterface.evalScript('getProjectExportsPath()', function (result) {
+        // Export to project folder with custom folder name
+        var safefolderName = customExportFolder.replace(/'/g, "\\'");
+        csInterface.evalScript("getProjectExportsPathCustom('" + safefolderName + "')", function (result) {
             try {
                 var pathInfo = JSON.parse(result);
 
                 if (!pathInfo.success) {
-                    setStatus(pathInfo.error || 'Cannot find EXPORTS folder', 'error');
+                    setStatus(pathInfo.error || 'Cannot find export folder', 'error');
                     return;
                 }
 
-                // Get versioned filename
                 getVersionedFilenameAndExport(pathInfo.path, cleanName, presetPath, hasVideo);
 
             } catch (e) {
@@ -555,7 +583,30 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
 }
 
 /**
- * Get the/**
+ * Parse suffix pattern and replace tokens
+ * @param {string} pattern - The suffix pattern with tokens
+ * @param {number} version - Version number
+ * @param {string} sequenceName - Name of the sequence
+ * @returns {string} Parsed suffix
+ */
+function parseSuffixPattern(pattern, version, sequenceName) {
+    var now = new Date();
+    var dateStr = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0');
+    var timeStr = String(now.getHours()).padStart(2, '0') + '-' +
+        String(now.getMinutes()).padStart(2, '0');
+
+    var result = pattern
+        .replace(/\{V\}/gi, String(version))
+        .replace(/\{DATE\}/gi, dateStr)
+        .replace(/\{TIME\}/gi, timeStr)
+        .replace(/\{SEQ\}/gi, sequenceName);
+
+    return result;
+}
+
+/**
  * Get versioned filename and export
  * @param {string} folderPath - Path to the export folder
  * @param {string} baseName - Base name of the file
@@ -563,36 +614,45 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
  * @param {boolean} hasVideo - Whether the sequence has video
  */
 function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVideo) {
-    // Determine extension based on preset (simplified for now)
+    // Determine extension based on preset
     var extension = hasVideo ? "mp4" : "wav";
+
+    // Get suffix pattern from settings
+    var suffixPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '_V{V}';
 
     // Check if path has trailing slash
     var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
-    // Ensure folderPath doesn't end with separator unless it's just root
     if (folderPath.slice(-1) === sep && folderPath.length > 1) {
         folderPath = folderPath.slice(0, -1);
     }
 
-    // Call ExtendScript to get next version
-    // Escape backslashes for ExtendScript
+    // Escape for ExtendScript
     var safeFolderPath = folderPath.replace(/\\/g, '\\\\');
-    // Escape single quotes in baseName
     var safeBaseName = baseName.replace(/'/g, "\\'");
+    var safeSuffixPattern = suffixPattern.replace(/'/g, "\\'");
 
-    var script = "getNextVersionedFilename('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "')";
+    // Pass suffix pattern to ExtendScript for version detection
+    var script = "getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeSuffixPattern + "')";
     debugLog('Getting version...', 'info');
 
     csInterface.evalScript(script, function (result) {
         try {
             var info = JSON.parse(result);
             if (info.success) {
-                debugLog('Version found: ' + info.filename, 'info');
-                executeExport(info.fullPath, presetPath, hasVideo, info.filename);
+                // Parse suffix with the version number
+                var parsedSuffix = parseSuffixPattern(suffixPattern, info.version, baseName);
+                var finalFilename = baseName + parsedSuffix;
+                var finalPath = folderPath + sep + finalFilename;
+
+                debugLog('Version found: ' + finalFilename, 'info');
+                executeExport(finalPath, presetPath, hasVideo, finalFilename);
             } else {
                 debugLog('Versioning error: ' + info.error, 'error');
-                // Fallback
-                var fullPath = folderPath + sep + baseName + "_V1";
-                executeExport(fullPath, presetPath, hasVideo, baseName + "_V1");
+                // Fallback to V1
+                var parsedSuffix = parseSuffixPattern(suffixPattern, 1, baseName);
+                var fallbackName = baseName + parsedSuffix;
+                var fullPath = folderPath + sep + fallbackName;
+                executeExport(fullPath, presetPath, hasVideo, fallbackName);
             }
         } catch (e) {
             setStatus('Error getting version', 'error');
@@ -619,6 +679,10 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
 
     setStatus('Starting export...', 'warning');
 
+    // Get In/Out setting
+    var useInOut = localStorage.getItem(STORAGE_KEYS.INOUT_EXPORT) === 'true';
+    debugLog('Use In/Out: ' + useInOut, 'info');
+
     // Escape paths for ExtendScript
     var escapedOutputPath = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var escapedPresetPath = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -626,11 +690,11 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     debugLog('Escaped output: ' + escapedOutputPath, 'info');
     debugLog('Escaped preset: ' + escapedPresetPath, 'info');
 
-    var script = "exportToAME('" + escapedOutputPath + "', '" + escapedPresetPath + "')";
+    var script = "exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
     debugLog('Script: ' + script, 'info');
 
     csInterface.evalScript(script, function (result) {
-        debugLog('exportToAME result: ' + result, result ? 'info' : 'error');
+        debugLog('exportToAMEWithOptions result: ' + result, result ? 'info' : 'error');
 
         try {
             var exportResult = JSON.parse(result);
@@ -638,7 +702,8 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
             if (exportResult.success) {
                 var type = hasVideo ? 'Video' : 'Audio';
                 var displayName = versionedName || 'export';
-                setStatus(displayName + ' started!', 'success');
+                var inoutLabel = useInOut ? ' (In/Out)' : '';
+                setStatus(displayName + inoutLabel + ' started!', 'success');
                 debugLog('Export started successfully!', 'success');
             } else {
                 setStatus(exportResult.error || 'Export failed', 'error');
