@@ -267,18 +267,189 @@ function getSystemInfo() {
 
 /**
  * Handle export button click
+ * First checks for selected sequences in Project panel (batch export)
+ * Falls back to active sequence if nothing selected
  */
 function handleExport() {
-    setStatus('Checking sequence...', 'warning');
+    setStatus('Checking...', 'warning');
     debugLog('Export button clicked', 'info');
 
-    // First check if there's an active sequence
+    // First, check if there are sequences selected in Project panel
+    debugLog('Checking for selected sequences...', 'info');
+    csInterface.evalScript('getSelectedSequences()', function (result) {
+        debugLog('getSelectedSequences result: ' + result, 'info');
+
+        try {
+            var selectionInfo = JSON.parse(result);
+
+            if (selectionInfo.success && selectionInfo.count > 0) {
+                // Batch export mode!
+                debugLog('Batch export: ' + selectionInfo.count + ' sequences selected', 'success');
+                setStatus('Batch: ' + selectionInfo.count + ' sequences', 'warning');
+                handleBatchExport(selectionInfo.sequences);
+            } else {
+                // No selection or failed - fall back to active sequence
+                debugLog('No selection, using active sequence', 'info');
+                handleSingleExport();
+            }
+        } catch (e) {
+            debugLog('Selection check failed: ' + e.message, 'error');
+            // Fall back to active sequence
+            handleSingleExport();
+        }
+    });
+}
+
+/**
+ * Handle batch export of multiple sequences
+ * @param {Array} sequences - Array of sequence objects {name, nodeId}
+ */
+function handleBatchExport(sequences) {
+    var downloadEnabled = document.getElementById('download-checkbox').checked;
+    var totalCount = sequences.length;
+    var successCount = 0;
+    var errorCount = 0;
+    var currentIndex = 0;
+
+    debugLog('Starting batch export of ' + totalCount + ' sequences', 'info');
+
+    // Process sequences one by one
+    function processNextSequence() {
+        if (currentIndex >= totalCount) {
+            // All done - start the batch
+            debugLog('All sequences queued, starting AME batch...', 'info');
+            csInterface.evalScript('startAMEBatch()', function (result) {
+                setStatus('Batch started: ' + successCount + '/' + totalCount, 'success');
+                debugLog('Batch export complete: ' + successCount + ' success, ' + errorCount + ' errors', 'success');
+            });
+            return;
+        }
+
+        var seq = sequences[currentIndex];
+        setStatus('Queueing ' + (currentIndex + 1) + '/' + totalCount + '...', 'warning');
+        debugLog('Processing: ' + seq.name, 'info');
+
+        // Get video info for this sequence
+        var escapedName = seq.name.replace(/'/g, "\\'");
+        csInterface.evalScript("hasVideoForSequence('" + escapedName + "')", function (videoResult) {
+            try {
+                var videoInfo = JSON.parse(videoResult);
+                var hasVideo = videoInfo.hasVideo || false;
+
+                // Determine preset
+                var presetPath;
+                if (hasVideo) {
+                    presetPath = localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET) || defaultPresets.video;
+                } else {
+                    presetPath = localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET) || defaultPresets.audio;
+                }
+
+                // Determine output folder
+                if (downloadEnabled) {
+                    csInterface.evalScript('getSystemInfo()', function (sysResult) {
+                        try {
+                            var sysInfo = JSON.parse(sysResult);
+                            var folderPath = sysInfo.downloadsPath;
+                            queueSequenceExport(seq.name, folderPath, presetPath, hasVideo);
+                        } catch (e) {
+                            debugLog('Error getting downloads path: ' + e.message, 'error');
+                            errorCount++;
+                            currentIndex++;
+                            processNextSequence();
+                        }
+                    });
+                } else {
+                    csInterface.evalScript('getProjectExportsPath()', function (pathResult) {
+                        try {
+                            var pathInfo = JSON.parse(pathResult);
+                            if (pathInfo.success) {
+                                queueSequenceExport(seq.name, pathInfo.path, presetPath, hasVideo);
+                            } else {
+                                debugLog('EXPORTS folder error: ' + pathInfo.error, 'error');
+                                errorCount++;
+                                currentIndex++;
+                                processNextSequence();
+                            }
+                        } catch (e) {
+                            debugLog('Error getting exports path: ' + e.message, 'error');
+                            errorCount++;
+                            currentIndex++;
+                            processNextSequence();
+                        }
+                    });
+                }
+            } catch (e) {
+                debugLog('Video check error for ' + seq.name + ': ' + e.message, 'error');
+                errorCount++;
+                currentIndex++;
+                processNextSequence();
+            }
+        });
+
+        function queueSequenceExport(seqName, folderPath, presetPath, hasVideo) {
+            // Clean name
+            var cleanName = seqName.replace(/[<>:"/\\|?*]/g, '_');
+            var extension = hasVideo ? 'mp4' : 'wav';
+
+            // Get versioned filename
+            var safeFolderPath = folderPath.replace(/\\/g, '\\\\');
+            var safeBaseName = cleanName.replace(/'/g, "\\'");
+
+            csInterface.evalScript("getNextVersionedFilename('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "')", function (verResult) {
+                try {
+                    var verInfo = JSON.parse(verResult);
+                    var outputPath = verInfo.success ? verInfo.fullPath : (folderPath + '/' + cleanName + '_V1');
+                    var fileName = verInfo.success ? verInfo.filename : (cleanName + '_V1');
+
+                    // Escape for ExtendScript
+                    var escapedOutput = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    var escapedPreset = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    var escapedSeqName = seqName.replace(/'/g, "\\'");
+
+                    var script = "exportSequenceByName('" + escapedSeqName + "', '" + escapedOutput + "', '" + escapedPreset + "')";
+                    debugLog('Queueing: ' + fileName, 'info');
+
+                    csInterface.evalScript(script, function (exportResult) {
+                        try {
+                            var expInfo = JSON.parse(exportResult);
+                            if (expInfo.success) {
+                                successCount++;
+                                debugLog('Queued: ' + fileName, 'success');
+                            } else {
+                                errorCount++;
+                                debugLog('Failed: ' + seqName + ' - ' + expInfo.error, 'error');
+                            }
+                        } catch (e) {
+                            errorCount++;
+                            debugLog('Export error: ' + e.message, 'error');
+                        }
+
+                        currentIndex++;
+                        processNextSequence();
+                    });
+                } catch (e) {
+                    debugLog('Version error: ' + e.message, 'error');
+                    errorCount++;
+                    currentIndex++;
+                    processNextSequence();
+                }
+            });
+        }
+    }
+
+    // Start processing
+    processNextSequence();
+}
+
+/**
+ * Handle single sequence export (active sequence)
+ */
+function handleSingleExport() {
     debugLog('Calling getActiveSequence()...', 'info');
     csInterface.evalScript('getActiveSequence()', function (result) {
         debugLog('getActiveSequence result: ' + result, result ? 'info' : 'error');
 
         try {
-            // Check for ExtendScript errors
             if (!result || result === 'undefined' || result.indexOf('Error') === 0 || result.indexOf('EvalScript') === 0) {
                 setStatus('Script error - check log', 'error');
                 debugLog('ExtendScript error: ' + result, 'error');
@@ -295,7 +466,6 @@ function handleExport() {
             }
 
             debugLog('Sequence name: ' + seqInfo.name, 'success');
-            // Check if sequence has video tracks
             checkVideoAndExport(seqInfo.name);
 
         } catch (e) {

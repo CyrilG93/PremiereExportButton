@@ -114,6 +114,76 @@ function getActiveSequence() {
 }
 
 /**
+ * Get sequences selected in the Project panel
+ * Uses app.getCurrentProjectViewSelection() (Premiere Pro 15.4+)
+ * @returns {string} JSON string with array of selected sequences
+ */
+function getSelectedSequences() {
+    try {
+        if (!app.project) {
+            return JSON.stringify({
+                success: false,
+                sequences: [],
+                error: "No project open"
+            });
+        }
+
+        // Get currently selected items in Project panel
+        // This API was added in Premiere Pro 15.4
+        var selectedItems = [];
+
+        if (typeof app.getCurrentProjectViewSelection === 'function') {
+            selectedItems = app.getCurrentProjectViewSelection();
+        } else {
+            // Fallback for older versions - not supported
+            return JSON.stringify({
+                success: false,
+                sequences: [],
+                error: "Batch export requires Premiere Pro 15.4 or later"
+            });
+        }
+
+        if (!selectedItems || selectedItems.length === 0) {
+            return JSON.stringify({
+                success: true,
+                sequences: [],
+                count: 0
+            });
+        }
+
+        var sequences = [];
+
+        // Filter only sequences from selected items
+        for (var i = 0; i < selectedItems.length; i++) {
+            var item = selectedItems[i];
+
+            // Check if item is a sequence
+            // ProjectItem.isSequence() returns true for sequence items
+            if (item && typeof item.isSequence === 'function' && item.isSequence()) {
+                sequences.push({
+                    name: item.name,
+                    nodeId: item.nodeId,
+                    treePath: item.treePath
+                });
+            }
+        }
+
+        return JSON.stringify({
+            success: true,
+            sequences: sequences,
+            count: sequences.length
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            sequences: [],
+            error: e.toString()
+        });
+    }
+}
+
+/**
  * Check if the active sequence contains video clips
  * @returns {string} JSON string with hasVideo boolean
  */
@@ -258,6 +328,158 @@ function exportToAME(outputPath, presetPath) {
             success: false,
             error: errorDetails
         });
+    }
+}
+
+/**
+ * Find a sequence by name in the project
+ * @param {string} sequenceName - Name of the sequence to find
+ * @returns {Sequence|null} The sequence object or null
+ */
+function findSequenceByName(sequenceName) {
+    if (!app.project || !app.project.sequences) {
+        return null;
+    }
+
+    for (var i = 0; i < app.project.sequences.numSequences; i++) {
+        var seq = app.project.sequences[i];
+        if (seq.name === sequenceName) {
+            return seq;
+        }
+    }
+    return null;
+}
+
+/**
+ * Check if a specific sequence has video clips
+ * @param {string} sequenceName - Name of the sequence
+ * @returns {string} JSON string with hasVideo boolean
+ */
+function hasVideoForSequence(sequenceName) {
+    try {
+        var seq = findSequenceByName(sequenceName);
+        if (!seq) {
+            return JSON.stringify({
+                success: false,
+                hasVideo: false,
+                error: "Sequence not found: " + sequenceName
+            });
+        }
+
+        var hasVideo = false;
+
+        if (seq.videoTracks) {
+            for (var i = 0; i < seq.videoTracks.numTracks; i++) {
+                var track = seq.videoTracks[i];
+                if (track.clips && track.clips.numItems > 0) {
+                    hasVideo = true;
+                    break;
+                }
+            }
+        }
+
+        return JSON.stringify({
+            success: true,
+            hasVideo: hasVideo
+        });
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            hasVideo: false,
+            error: e.toString()
+        });
+    }
+}
+
+/**
+ * Export a specific sequence by name
+ * @param {string} sequenceName - Name of the sequence to export
+ * @param {string} outputPath - Full path for output file
+ * @param {string} presetPath - Path to the preset file
+ * @returns {string} JSON string with result
+ */
+function exportSequenceByName(sequenceName, outputPath, presetPath) {
+    try {
+        // Check if encoder is available
+        if (!app.encoder) {
+            return JSON.stringify({
+                success: false,
+                error: "Adobe Media Encoder not available"
+            });
+        }
+
+        // Find the sequence
+        var seq = findSequenceByName(sequenceName);
+        if (!seq) {
+            return JSON.stringify({
+                success: false,
+                error: "Sequence not found: " + sequenceName
+            });
+        }
+
+        // Normalize paths for Windows
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        if (isWindows) {
+            outputPath = outputPath.replace(/\//g, "\\");
+            presetPath = presetPath.replace(/\//g, "\\");
+        }
+
+        // Verify preset file exists
+        var presetFile = new File(presetPath);
+        if (!presetFile.exists) {
+            return JSON.stringify({
+                success: false,
+                error: "Preset file not found: " + presetPath
+            });
+        }
+
+        // Queue the export
+        var jobID = app.encoder.encodeSequence(
+            seq,
+            outputPath,
+            presetPath,
+            0,  // Entire sequence
+            0   // Don't remove on completion
+        );
+
+        if (jobID) {
+            // Don't start batch yet - we'll start after all sequences are queued
+            return JSON.stringify({
+                success: true,
+                jobID: jobID,
+                sequenceName: sequenceName
+            });
+        } else {
+            return JSON.stringify({
+                success: false,
+                error: "Failed to queue: " + sequenceName
+            });
+        }
+    } catch (e) {
+        var errorDetails = e.toString();
+        if (e.message) {
+            errorDetails = e.message;
+        }
+        return JSON.stringify({
+            success: false,
+            error: errorDetails
+        });
+    }
+}
+
+/**
+ * Start the AME batch (call after queueing all sequences)
+ */
+function startAMEBatch() {
+    try {
+        if (app.encoder) {
+            app.encoder.startBatch();
+            return JSON.stringify({ success: true });
+        } else {
+            return JSON.stringify({ success: false, error: "AME not available" });
+        }
+    } catch (e) {
+        return JSON.stringify({ success: false, error: e.toString() });
     }
 }
 
