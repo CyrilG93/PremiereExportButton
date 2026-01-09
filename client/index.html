@@ -106,8 +106,14 @@
                         <input type="text" id="export-folder" placeholder="EXPORTS" value="EXPORTS">
                     </div>
                     <div class="setting-group">
-                        <label for="download-path">Download Location:</label>
-                        <input type="text" id="download-path" placeholder="~/Downloads (leave empty for default)">
+                        <label for="folder-depth">Folder Depth:</label>
+                        <input type="number" id="folder-depth" min="0" max="10" value="0" style="width: 60px;">
+                        <span class="setting-hint">0 = beside project, 1 = one folder up, 2 = two up...</span>
+                    </div>
+                    <div class="setting-group">
+                        <label for="fixed-folder">Fixed Folder (when checkbox enabled):</label>
+                        <input type="text" id="fixed-folder" placeholder="Leave empty for Downloads">
+                        <button class="browse-btn" data-target="fixed-folder">Browse</button>
                     </div>
                 </div>
 

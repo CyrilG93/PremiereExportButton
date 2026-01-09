@@ -738,6 +738,64 @@ function getProjectExportsPathCustom(customFolderName) {
 }
 
 /**
+ * Get exports path with custom folder name and depth
+ * @param {string} customFolderName - Name of the export folder
+ * @param {number} depth - How many folders to go up (0 = beside project, 1 = one up, etc.)
+ */
+function getProjectExportsPathWithDepth(customFolderName, depth) {
+    try {
+        if (!customFolderName) {
+            customFolderName = "EXPORTS";
+        }
+        if (isNaN(depth) || depth < 0) {
+            depth = 0;
+        }
+
+        if (!app.project || !app.project.path) {
+            return JSON.stringify({
+                success: false,
+                path: "",
+                error: "No project path available"
+            });
+        }
+
+        var projectPath = app.project.path;
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        var separator = isWindows ? "\\" : "/";
+
+        // Start from project file's parent folder
+        var currentFolder = new File(projectPath).parent;
+
+        // Go up by 'depth' folders
+        for (var i = 0; i < depth; i++) {
+            if (currentFolder.parent) {
+                currentFolder = currentFolder.parent;
+            }
+        }
+
+        var basePath = currentFolder.fsName;
+        var exportsPath = basePath + separator + customFolderName;
+
+        // Create folder if needed
+        var exportsFolder = new Folder(exportsPath);
+        if (!exportsFolder.exists) {
+            exportsFolder.create();
+        }
+
+        return JSON.stringify({
+            success: true,
+            path: exportsPath
+        });
+    } catch (e) {
+        return JSON.stringify({
+            success: false,
+            path: "",
+            error: e.toString()
+        });
+    }
+}
+
+/**
  * Export with options (In/Out support)
  * @param {string} outputPath - Output file path
  * @param {string} presetPath - Preset file path

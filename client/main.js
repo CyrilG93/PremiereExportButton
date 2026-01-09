@@ -17,7 +17,8 @@ var STORAGE_KEYS = {
     SUFFIX_PATTERN: 'exportButton_suffixPattern',
     INOUT_EXPORT: 'exportButton_inoutExport',
     EXPORT_FOLDER: 'exportButton_exportFolder',
-    DOWNLOAD_PATH: 'exportButton_downloadPath'
+    FOLDER_DEPTH: 'exportButton_folderDepth',
+    FIXED_FOLDER: 'exportButton_fixedFolder'
 };
 
 // Default preset paths (will be updated based on OS)
@@ -144,10 +145,11 @@ function loadSettings() {
     var videoPreset = localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET) || '';
     var audioPreset = localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET) || '';
     var downloadEnabled = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_ENABLED) === 'true';
-    var suffixPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '_V{V}';
+    var suffixPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
     var inoutExport = localStorage.getItem(STORAGE_KEYS.INOUT_EXPORT) === 'true';
     var exportFolder = localStorage.getItem(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
-    var downloadPath = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_PATH) || '';
+    var folderDepth = localStorage.getItem(STORAGE_KEYS.FOLDER_DEPTH) || '0';
+    var fixedFolder = localStorage.getItem(STORAGE_KEYS.FIXED_FOLDER) || '';
 
     document.getElementById('video-preset').value = videoPreset;
     document.getElementById('audio-preset').value = audioPreset;
@@ -155,7 +157,8 @@ function loadSettings() {
     document.getElementById('suffix-pattern').value = suffixPattern;
     document.getElementById('inout-export').checked = inoutExport;
     document.getElementById('export-folder').value = exportFolder;
-    document.getElementById('download-path').value = downloadPath;
+    document.getElementById('folder-depth').value = folderDepth;
+    document.getElementById('fixed-folder').value = fixedFolder;
 }
 
 /**
@@ -164,17 +167,19 @@ function loadSettings() {
 function saveSettings() {
     var videoPreset = document.getElementById('video-preset').value;
     var audioPreset = document.getElementById('audio-preset').value;
-    var suffixPattern = document.getElementById('suffix-pattern').value || '_V{V}';
+    var suffixPattern = document.getElementById('suffix-pattern').value || '{SEQ}_V{V}';
     var inoutExport = document.getElementById('inout-export').checked;
     var exportFolder = document.getElementById('export-folder').value || 'EXPORTS';
-    var downloadPath = document.getElementById('download-path').value;
+    var folderDepth = document.getElementById('folder-depth').value || '0';
+    var fixedFolder = document.getElementById('fixed-folder').value;
 
     localStorage.setItem(STORAGE_KEYS.VIDEO_PRESET, videoPreset);
     localStorage.setItem(STORAGE_KEYS.AUDIO_PRESET, audioPreset);
     localStorage.setItem(STORAGE_KEYS.SUFFIX_PATTERN, suffixPattern);
     localStorage.setItem(STORAGE_KEYS.INOUT_EXPORT, inoutExport);
     localStorage.setItem(STORAGE_KEYS.EXPORT_FOLDER, exportFolder);
-    localStorage.setItem(STORAGE_KEYS.DOWNLOAD_PATH, downloadPath);
+    localStorage.setItem(STORAGE_KEYS.FOLDER_DEPTH, folderDepth);
+    localStorage.setItem(STORAGE_KEYS.FIXED_FOLDER, fixedFolder);
 
     setStatus('Settings saved', 'success');
     closeSettingsModal();
@@ -550,13 +555,14 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
 
     // Get custom settings
     var customExportFolder = localStorage.getItem(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
-    var customDownloadPath = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_PATH) || '';
+    var folderDepth = parseInt(localStorage.getItem(STORAGE_KEYS.FOLDER_DEPTH) || '0', 10);
+    var fixedFolder = localStorage.getItem(STORAGE_KEYS.FIXED_FOLDER) || '';
 
     if (downloadEnabled) {
-        // Check for custom download path
-        if (customDownloadPath && customDownloadPath.trim() !== '') {
-            // Use custom download path
-            getVersionedFilenameAndExport(customDownloadPath, cleanName, presetPath, hasVideo);
+        // Check for fixed folder path
+        if (fixedFolder && fixedFolder.trim() !== '') {
+            // Use custom fixed folder
+            getVersionedFilenameAndExport(fixedFolder, cleanName, presetPath, hasVideo);
         } else {
             // Use default Downloads folder
             csInterface.evalScript('getSystemInfo()', function (result) {
@@ -570,9 +576,9 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
             });
         }
     } else {
-        // Export to project folder with custom folder name
+        // Export to project folder with custom folder name and depth
         var safefolderName = customExportFolder.replace(/'/g, "\\'");
-        csInterface.evalScript("getProjectExportsPathCustom('" + safefolderName + "')", function (result) {
+        csInterface.evalScript("getProjectExportsPathWithDepth('" + safefolderName + "', " + folderDepth + ")", function (result) {
             try {
                 var pathInfo = JSON.parse(result);
 
