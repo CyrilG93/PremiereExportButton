@@ -1,4 +1,4 @@
-# Export Button for Adobe Premiere Pro 25.5+
+# Export Button for Adobe Premiere Pro 25.5
 
 A simple CEP extension to quickly export the active sequence via Adobe Media Encoder.
 
