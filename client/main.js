@@ -411,15 +411,23 @@ function handleBatchExport(sequences) {
             var cleanName = seqName.replace(/[<>:"/\\|?*]/g, '_');
             var extension = hasVideo ? 'mp4' : 'wav';
 
+            // Get naming pattern from settings
+            var namingPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
+
             // Get versioned filename
             var safeFolderPath = folderPath.replace(/\\/g, '\\\\');
             var safeBaseName = cleanName.replace(/'/g, "\\'");
+            var safeNamingPattern = namingPattern.replace(/'/g, "\\'");
 
-            csInterface.evalScript("getNextVersionedFilename('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "')", function (verResult) {
+            csInterface.evalScript("getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeNamingPattern + "')", function (verResult) {
                 try {
                     var verInfo = JSON.parse(verResult);
-                    var outputPath = verInfo.success ? verInfo.fullPath : (folderPath + '/' + cleanName + '_V1');
-                    var fileName = verInfo.success ? verInfo.filename : (cleanName + '_V1');
+                    var version = verInfo.success ? verInfo.version : 1;
+
+                    // Apply naming pattern (full filename now)
+                    var fileName = parseSuffixPattern(namingPattern, version, cleanName);
+                    var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
+                    var outputPath = folderPath + sep + fileName;
 
                     // Escape for ExtendScript
                     var escapedOutput = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -624,7 +632,7 @@ function parseSuffixPattern(pattern, version, sequenceName) {
 /**
  * Get versioned filename and export
  * @param {string} folderPath - Path to the export folder
- * @param {string} baseName - Base name of the file
+ * @param {string} baseName - Base name of the file (sequence name)
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether the sequence has video
  */
@@ -632,8 +640,8 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
     // Determine extension based on preset
     var extension = hasVideo ? "mp4" : "wav";
 
-    // Get suffix pattern from settings
-    var suffixPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '_V{V}';
+    // Get naming pattern from settings (now full filename pattern, not suffix)
+    var namingPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
 
     // Check if path has trailing slash
     var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
@@ -644,19 +652,19 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
     // Escape for ExtendScript
     var safeFolderPath = folderPath.replace(/\\/g, '\\\\');
     var safeBaseName = baseName.replace(/'/g, "\\'");
-    var safeSuffixPattern = suffixPattern.replace(/'/g, "\\'");
+    var safeNamingPattern = namingPattern.replace(/'/g, "\\'");
 
-    // Pass suffix pattern to ExtendScript for version detection
-    var script = "getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeSuffixPattern + "')";
+    // Pass pattern to ExtendScript for version detection
+    var script = "getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeNamingPattern + "')";
     debugLog('Getting version...', 'info');
 
     csInterface.evalScript(script, function (result) {
         try {
             var info = JSON.parse(result);
             if (info.success) {
-                // Parse suffix with the version number
-                var parsedSuffix = parseSuffixPattern(suffixPattern, info.version, baseName);
-                var finalFilename = baseName + parsedSuffix;
+                // Parse naming pattern with the version number
+                // Pattern IS the full filename now (not suffix)
+                var finalFilename = parseSuffixPattern(namingPattern, info.version, baseName);
                 var finalPath = folderPath + sep + finalFilename;
 
                 debugLog('Version found: ' + finalFilename, 'info');
@@ -664,17 +672,17 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
             } else {
                 debugLog('Versioning error: ' + info.error, 'error');
                 // Fallback to V1
-                var parsedSuffix = parseSuffixPattern(suffixPattern, 1, baseName);
-                var fallbackName = baseName + parsedSuffix;
+                var fallbackName = parseSuffixPattern(namingPattern, 1, baseName);
                 var fullPath = folderPath + sep + fallbackName;
                 executeExport(fullPath, presetPath, hasVideo, fallbackName);
             }
         } catch (e) {
             setStatus('Error getting version', 'error');
             debugLog('Version Parse Error: ' + result, 'error');
-            // Fallback
-            var fullPath = folderPath + sep + baseName + "_V1";
-            executeExport(fullPath, presetPath, hasVideo, baseName + "_V1");
+            // Fallback with default pattern
+            var fallbackName = parseSuffixPattern('{SEQ}_V1', 1, baseName);
+            var fullPath = folderPath + sep + fallbackName;
+            executeExport(fullPath, presetPath, hasVideo, fallbackName);
         }
     });
 }
