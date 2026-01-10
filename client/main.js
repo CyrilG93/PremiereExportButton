@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  * 
  * @author CyrilG93
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 // Global CSInterface instance
@@ -761,17 +761,20 @@ function closeSettingsModal() {
 }
 
 /**
- * Browse for a preset file
+ * Browse for a preset file or folder
  * @param {string} targetId - ID of the input field to populate
  */
 function browseForPreset(targetId) {
+    // Check if we're selecting a folder (for fixed-folder option)
+    var isFolder = (targetId === 'fixed-folder');
+
     // Use CEP file dialog
     var result = window.cep.fs.showOpenDialogEx(
         false,  // allowMultipleSelection
-        false,  // chooseDirectory
-        'Select Preset File',  // title
+        isFolder,  // chooseDirectory - true for folder selection
+        isFolder ? 'Select Folder' : 'Select Preset File',  // title
         '',     // initialPath
-        ['epr'] // fileTypes
+        isFolder ? [] : ['epr'] // fileTypes - empty for folders
     );
 
     if (result.err === 0 && result.data && result.data.length > 0) {
