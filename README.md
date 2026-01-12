@@ -35,6 +35,18 @@ A powerful CEP extension for quick, customizable exports via Adobe Media Encoder
 | **Video + Audio Preset** | Path to .epr preset for video exports |
 | **Audio Only Preset** | Path to .epr preset for audio-only exports |
 
+**System Presets Location:**
+| Platform | Path |
+|----------|------|
+| **macOS** | `/Applications/Adobe Media Encoder 2025/Adobe Media Encoder 2025.app/Contents/MediaIO/systempresets/` |
+| **Windows** | `C:\Program Files\Adobe\Adobe Media Encoder 2025\MediaIO\systempresets\` |
+
+**Custom Presets Location:**
+| Platform | Path |
+|----------|------|
+| **macOS** | `~/Documents/Adobe/Adobe Media Encoder/2025/Presets/` |
+| **Windows** | `C:\Users\<username>\Documents\Adobe\Adobe Media Encoder\2025\Presets\` |
+
 ### File Naming
 | Setting | Description |
 |---------|-------------|
