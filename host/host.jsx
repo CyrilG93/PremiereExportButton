@@ -184,7 +184,8 @@ function getSelectedSequences() {
 }
 
 /**
- * Check if the active sequence contains video clips
+ * Check if the active sequence contains visible video clips
+ * A track with clips but muted/hidden counts as no video for export purposes
  * @returns {string} JSON string with hasVideo boolean
  */
 function hasVideoTracks() {
@@ -200,14 +201,25 @@ function hasVideoTracks() {
 
         var hasVideo = false;
 
-        // Loop through video tracks to see if any have clips
+        // Loop through video tracks to see if any have visible clips
         if (seq.videoTracks) {
             for (var i = 0; i < seq.videoTracks.numTracks; i++) {
                 var track = seq.videoTracks[i];
-                // Check if track has clips and if clip count is > 0
+
+                // Check if track has clips
                 if (track.clips && track.clips.numItems > 0) {
-                    hasVideo = true;
-                    break;
+                    // Check if track is visible (not muted)
+                    // isMuted() returns true if track output is disabled
+                    var isMuted = false;
+                    if (typeof track.isMuted === 'function') {
+                        isMuted = track.isMuted();
+                    }
+
+                    // If track has clips AND is not muted, we have visible video
+                    if (!isMuted) {
+                        hasVideo = true;
+                        break;
+                    }
                 }
             }
         }
@@ -351,7 +363,8 @@ function findSequenceByName(sequenceName) {
 }
 
 /**
- * Check if a specific sequence has video clips
+ * Check if a specific sequence has visible video clips
+ * Muted/hidden video tracks count as no video for export preset selection
  * @param {string} sequenceName - Name of the sequence
  * @returns {string} JSON string with hasVideo boolean
  */
@@ -371,9 +384,20 @@ function hasVideoForSequence(sequenceName) {
         if (seq.videoTracks) {
             for (var i = 0; i < seq.videoTracks.numTracks; i++) {
                 var track = seq.videoTracks[i];
+
+                // Check if track has clips
                 if (track.clips && track.clips.numItems > 0) {
-                    hasVideo = true;
-                    break;
+                    // Check if track is visible (not muted)
+                    var isMuted = false;
+                    if (typeof track.isMuted === 'function') {
+                        isMuted = track.isMuted();
+                    }
+
+                    // If track has clips AND is not muted, we have visible video
+                    if (!isMuted) {
+                        hasVideo = true;
+                        break;
+                    }
                 }
             }
         }
