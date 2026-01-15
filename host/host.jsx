@@ -3,7 +3,7 @@
  * Handles export to Adobe Media Encoder
  * 
  * @author CyrilG93
- * @version 1.0.0
+ * @version 1.0.4
  */
 
 /**
@@ -880,6 +880,70 @@ function exportToAMEWithOptions(outputPath, presetPath, useInOut) {
             return JSON.stringify({
                 success: false,
                 error: "Failed to queue export"
+            });
+        }
+    } catch (e) {
+        var errorDetails = e.toString();
+        if (e.message) {
+            errorDetails = e.message;
+        }
+        return JSON.stringify({
+            success: false,
+            error: errorDetails
+        });
+    }
+}
+
+/**
+ * Export directly in Premiere Pro (without Adobe Media Encoder)
+ * Uses sequence.exportAsMediaDirect() method
+ * @param {string} outputPath - Output file path
+ * @param {string} presetPath - Preset file path
+ * @param {boolean} useInOut - If true, export only In/Out range
+ * @returns {string} JSON string with result
+ */
+function exportDirectInPremiere(outputPath, presetPath, useInOut) {
+    try {
+        var seq = app.project.activeSequence;
+        if (!seq) {
+            return JSON.stringify({
+                success: false,
+                error: "No active sequence"
+            });
+        }
+
+        // Normalize paths for Windows
+        var isWindows = $.os.indexOf("Windows") !== -1;
+        if (isWindows) {
+            outputPath = outputPath.replace(/\//g, "\\");
+            presetPath = presetPath.replace(/\//g, "\\");
+        }
+
+        // Verify preset file exists
+        var presetFile = new File(presetPath);
+        if (!presetFile.exists) {
+            return JSON.stringify({
+                success: false,
+                error: "Preset file not found: " + presetPath
+            });
+        }
+
+        // workAreaType: 0 = entire sequence, 1 = in/out points
+        var workAreaType = useInOut ? 1 : 0;
+
+        // exportAsMediaDirect renders directly in Premiere without sending to AME
+        // Returns true on success, false on failure
+        var result = seq.exportAsMediaDirect(outputPath, presetPath, workAreaType);
+
+        if (result) {
+            return JSON.stringify({
+                success: true,
+                message: "Export completed"
+            });
+        } else {
+            return JSON.stringify({
+                success: false,
+                error: "Export failed - check preset compatibility"
             });
         }
     } catch (e) {

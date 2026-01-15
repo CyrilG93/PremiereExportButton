@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  * 
  * @author CyrilG93
- * @version 1.0.1
+ * @version 1.0.4
  */
 
 // Global CSInterface instance
@@ -18,7 +18,8 @@ var STORAGE_KEYS = {
     INOUT_EXPORT: 'exportButton_inoutExport',
     EXPORT_FOLDER: 'exportButton_exportFolder',
     FOLDER_DEPTH: 'exportButton_folderDepth',
-    FIXED_FOLDER: 'exportButton_fixedFolder'
+    FIXED_FOLDER: 'exportButton_fixedFolder',
+    PREMIERE_DIRECT: 'exportButton_premiereDirect'
 };
 
 // Default preset paths (will be updated based on OS)
@@ -151,6 +152,8 @@ function loadSettings() {
     var folderDepth = localStorage.getItem(STORAGE_KEYS.FOLDER_DEPTH) || '0';
     var fixedFolder = localStorage.getItem(STORAGE_KEYS.FIXED_FOLDER) || '';
 
+    var premiereDirect = localStorage.getItem(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+
     document.getElementById('video-preset').value = videoPreset;
     document.getElementById('audio-preset').value = audioPreset;
     document.getElementById('download-checkbox').checked = downloadEnabled;
@@ -159,6 +162,7 @@ function loadSettings() {
     document.getElementById('export-folder').value = exportFolder;
     document.getElementById('folder-depth').value = folderDepth;
     document.getElementById('fixed-folder').value = fixedFolder;
+    document.getElementById('premiere-direct').checked = premiereDirect;
 }
 
 /**
@@ -172,6 +176,7 @@ function saveSettings() {
     var exportFolder = document.getElementById('export-folder').value || 'EXPORTS';
     var folderDepth = document.getElementById('folder-depth').value || '0';
     var fixedFolder = document.getElementById('fixed-folder').value;
+    var premiereDirect = document.getElementById('premiere-direct').checked;
 
     localStorage.setItem(STORAGE_KEYS.VIDEO_PRESET, videoPreset);
     localStorage.setItem(STORAGE_KEYS.AUDIO_PRESET, audioPreset);
@@ -180,6 +185,7 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.EXPORT_FOLDER, exportFolder);
     localStorage.setItem(STORAGE_KEYS.FOLDER_DEPTH, folderDepth);
     localStorage.setItem(STORAGE_KEYS.FIXED_FOLDER, fixedFolder);
+    localStorage.setItem(STORAGE_KEYS.PREMIERE_DIRECT, premiereDirect);
 
     setStatus('Settings saved', 'success');
     closeSettingsModal();
@@ -294,10 +300,21 @@ function getSystemInfo() {
  * Handle export button click
  * First checks for selected sequences in Project panel (batch export)
  * Falls back to active sequence if nothing selected
+ * Note: Premiere Direct export mode skips batch (not compatible)
  */
 function handleExport() {
     setStatus('Checking...', 'warning');
     debugLog('Export button clicked', 'info');
+
+    // Check if Premiere Direct export is enabled
+    var premiereDirect = localStorage.getItem(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+
+    // Premiere Direct mode is not compatible with batch export
+    if (premiereDirect) {
+        debugLog('Premiere Direct mode - using active sequence only', 'info');
+        handleSingleExport();
+        return;
+    }
 
     // First, check if there are sequences selected in Project panel
     debugLog('Checking for selected sequences...', 'info');
@@ -694,7 +711,7 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
 }
 
 /**
- * Execute the export via Adobe Media Encoder
+ * Execute the export via Adobe Media Encoder or directly in Premiere
  * @param {string} outputPath - Full output path (without extension)
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether export includes video
@@ -708,9 +725,11 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
 
     setStatus('Starting export...', 'warning');
 
-    // Get In/Out setting
+    // Get settings
     var useInOut = localStorage.getItem(STORAGE_KEYS.INOUT_EXPORT) === 'true';
+    var premiereDirect = localStorage.getItem(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
     debugLog('Use In/Out: ' + useInOut, 'info');
+    debugLog('Premiere Direct: ' + premiereDirect, 'info');
 
     // Escape paths for ExtendScript
     var escapedOutputPath = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -719,11 +738,19 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     debugLog('Escaped output: ' + escapedOutputPath, 'info');
     debugLog('Escaped preset: ' + escapedPresetPath, 'info');
 
-    var script = "exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+    // Choose export method based on setting
+    var script;
+    if (premiereDirect) {
+        script = "exportDirectInPremiere('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+        debugLog('Using Premiere Direct export', 'info');
+    } else {
+        script = "exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+        debugLog('Using AME export', 'info');
+    }
     debugLog('Script: ' + script, 'info');
 
     csInterface.evalScript(script, function (result) {
-        debugLog('exportToAMEWithOptions result: ' + result, result ? 'info' : 'error');
+        debugLog('Export result: ' + result, result ? 'info' : 'error');
 
         try {
             var exportResult = JSON.parse(result);
@@ -732,7 +759,8 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
                 var type = hasVideo ? 'Video' : 'Audio';
                 var displayName = versionedName || 'export';
                 var inoutLabel = useInOut ? ' (In/Out)' : '';
-                setStatus(displayName + inoutLabel + ' started!', 'success');
+                var modeLabel = premiereDirect ? ' [Direct]' : '';
+                setStatus(displayName + inoutLabel + modeLabel + ' started!', 'success');
                 debugLog('Export started successfully!', 'success');
             } else {
                 setStatus(exportResult.error || 'Export failed', 'error');
@@ -745,6 +773,7 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
         }
     });
 }
+
 
 /**
  * Open settings modal
