@@ -74,6 +74,38 @@ A powerful CEP extension for quick, customizable exports via Adobe Media Encoder
 | Setting | Description |
 |---------|-------------|
 | **Export In/Out range only** | Export only between In and Out points |
+| **Export directly in Premiere** | Render directly in Premiere Pro instead of sending to Media Encoder |
+
+#### Direct Premiere Export
+
+When enabled, the sequence renders directly within Premiere Pro using `exportAsMediaDirect()` instead of being sent to Adobe Media Encoder.
+
+**Benefits:**
+- Faster for single exports (no AME queue)
+- No need to have Media Encoder running
+
+**Limitations:**
+- ⚠️ **Not compatible with batch export** - Only the active timeline is exported
+- Extension detection is based on preset name (see below)
+
+**Preset Extension Detection:**
+
+Since Premiere's direct export doesn't auto-detect the file format from presets, the extension is inferred from the preset name:
+
+| Preset Name Contains | Extension |
+|---------------------|-----------|
+| H.264, H264, HEVC, H.265, YouTube, Vimeo, Facebook, Twitter | `.mp4` |
+| ProRes, QuickTime, Apple | `.mov` |
+| DNxHD, DNxHR, MXF | `.mxf` |
+| AVI | `.avi` |
+| WebM, VP9, VP8 | `.webm` |
+| WAV, Wave | `.wav` |
+| AIFF | `.aiff` |
+| MP3 | `.mp3` |
+| AAC | `.aac` |
+| *(fallback)* | `.mp4` (video) or `.wav` (audio) |
+
+> **Note:** If your preset name doesn't match any pattern, rename it to include the format (e.g., "My Preset ProRes.epr").
 
 ### Folders
 | Setting | Description |

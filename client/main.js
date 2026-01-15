@@ -711,6 +711,81 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
 }
 
 /**
+ * Detect file extension from preset name/path
+ * Since Premiere's exportAsMediaDirect doesn't auto-detect extension from .epr,
+ * we infer it from the preset name using common patterns
+ * @param {string} presetPath - Path to the preset file
+ * @param {boolean} hasVideo - Whether the sequence has video (fallback)
+ * @returns {string} File extension with dot (e.g., '.mp4', '.mov')
+ */
+function getExtensionFromPreset(presetPath, hasVideo) {
+    // Get just the preset filename (lowercase for matching)
+    var presetName = presetPath.split(/[/\\]/).pop().toLowerCase();
+
+    // Video formats - check preset name for format hints
+    // H.264 / HEVC / AVC
+    if (presetName.indexOf('h.264') !== -1 ||
+        presetName.indexOf('h264') !== -1 ||
+        presetName.indexOf('hevc') !== -1 ||
+        presetName.indexOf('h.265') !== -1 ||
+        presetName.indexOf('youtube') !== -1 ||
+        presetName.indexOf('vimeo') !== -1 ||
+        presetName.indexOf('facebook') !== -1 ||
+        presetName.indexOf('twitter') !== -1) {
+        return '.mp4';
+    }
+
+    // Apple ProRes / QuickTime
+    if (presetName.indexOf('prores') !== -1 ||
+        presetName.indexOf('quicktime') !== -1 ||
+        presetName.indexOf('apple') !== -1 ||
+        presetName.indexOf('.mov') !== -1) {
+        return '.mov';
+    }
+
+    // DNxHD / DNxHR / MXF
+    if (presetName.indexOf('dnxhd') !== -1 ||
+        presetName.indexOf('dnxhr') !== -1 ||
+        presetName.indexOf('mxf') !== -1) {
+        return '.mxf';
+    }
+
+    // AVI
+    if (presetName.indexOf('avi') !== -1) {
+        return '.avi';
+    }
+
+    // WebM / VP9
+    if (presetName.indexOf('webm') !== -1 ||
+        presetName.indexOf('vp9') !== -1 ||
+        presetName.indexOf('vp8') !== -1) {
+        return '.webm';
+    }
+
+    // Audio formats
+    if (presetName.indexOf('wav') !== -1 ||
+        presetName.indexOf('wave') !== -1) {
+        return '.wav';
+    }
+
+    if (presetName.indexOf('aiff') !== -1) {
+        return '.aiff';
+    }
+
+    if (presetName.indexOf('mp3') !== -1) {
+        return '.mp3';
+    }
+
+    if (presetName.indexOf('aac') !== -1) {
+        return '.aac';
+    }
+
+    // Fallback based on hasVideo
+    debugLog('Could not detect format from preset name, using fallback', 'info');
+    return hasVideo ? '.mp4' : '.wav';
+}
+
+/**
  * Execute the export via Adobe Media Encoder or directly in Premiere
  * @param {string} outputPath - Full output path (without extension)
  * @param {string} presetPath - Path to the preset file
@@ -732,12 +807,12 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     debugLog('Premiere Direct: ' + premiereDirect, 'info');
 
     // For direct Premiere export, we need to add the file extension
-    // The extension is determined by hasVideo (video preset = mp4, audio preset = wav)
+    // Detect extension from preset name (since Premiere doesn't auto-detect from .epr)
     var finalOutputPath = outputPath;
     if (premiereDirect) {
-        var extension = hasVideo ? '.mp4' : '.wav';
+        var extension = getExtensionFromPreset(presetPath, hasVideo);
         finalOutputPath = outputPath + extension;
-        debugLog('Added extension for direct export: ' + extension, 'info');
+        debugLog('Detected extension from preset: ' + extension, 'info');
     }
 
     // Escape paths for ExtendScript
