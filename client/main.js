@@ -731,8 +731,17 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     debugLog('Use In/Out: ' + useInOut, 'info');
     debugLog('Premiere Direct: ' + premiereDirect, 'info');
 
+    // For direct Premiere export, we need to add the file extension
+    // The extension is determined by hasVideo (video preset = mp4, audio preset = wav)
+    var finalOutputPath = outputPath;
+    if (premiereDirect) {
+        var extension = hasVideo ? '.mp4' : '.wav';
+        finalOutputPath = outputPath + extension;
+        debugLog('Added extension for direct export: ' + extension, 'info');
+    }
+
     // Escape paths for ExtendScript
-    var escapedOutputPath = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var escapedOutputPath = finalOutputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var escapedPresetPath = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     debugLog('Escaped output: ' + escapedOutputPath, 'info');
@@ -773,6 +782,7 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
         }
     });
 }
+
 
 
 /**
