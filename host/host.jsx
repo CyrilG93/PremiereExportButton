@@ -954,18 +954,24 @@ function exportDirectInPremiere(outputPath, presetPath, useInOut) {
         }
 
         // exportAsMediaDirect renders directly in Premiere without sending to AME
-        // Known issue: May fail on Mac with Premiere Pro 2025
+        // Note: Return value is unreliable on Mac - may return false even on success
         var result = seq.exportAsMediaDirect(outputPath, presetPath, workAreaType);
 
-        if (result === true) {
+        // Check if file was created (more reliable than return value on Mac)
+        $.sleep(500); // Brief wait for file system
+        var exportedFile = new File(outputPath);
+        var fileCreated = exportedFile.exists;
+
+        if (result === true || fileCreated) {
             return JSON.stringify({
                 success: true,
-                message: "Export completed"
+                message: "Export completed",
+                fileExists: fileCreated
             });
         } else {
             var errorMsg = "Export failed";
             if (isMac) {
-                errorMsg = "Direct export failed on Mac. Known issue with Premiere 2025. Try disabling Premiere Direct option.";
+                errorMsg = "Direct export failed on Mac. Try disabling Premiere Direct option.";
             } else {
                 errorMsg = "Export failed - check preset compatibility";
             }
