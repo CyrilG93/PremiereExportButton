@@ -912,11 +912,18 @@ function exportDirectInPremiere(outputPath, presetPath, useInOut) {
             });
         }
 
-        // Normalize paths for Windows
+        // Detect platform
         var isWindows = $.os.indexOf("Windows") !== -1;
+        var isMac = !isWindows;
+
+        // Normalize paths based on platform
         if (isWindows) {
             outputPath = outputPath.replace(/\//g, "\\");
             presetPath = presetPath.replace(/\//g, "\\");
+        } else {
+            // Mac: ensure forward slashes
+            outputPath = outputPath.replace(/\\/g, "/");
+            presetPath = presetPath.replace(/\\/g, "/");
         }
 
         // Verify preset file exists
@@ -928,28 +935,54 @@ function exportDirectInPremiere(outputPath, presetPath, useInOut) {
             });
         }
 
+        // Create output directory if it doesn't exist
+        var outputFile = new File(outputPath);
+        var outputFolder = outputFile.parent;
+        if (outputFolder && !outputFolder.exists) {
+            outputFolder.create();
+        }
+
         // workAreaType: 0 = entire sequence, 1 = in/out points
         var workAreaType = useInOut ? 1 : 0;
 
+        // Check if exportAsMediaDirect exists
+        if (typeof seq.exportAsMediaDirect !== 'function') {
+            return JSON.stringify({
+                success: false,
+                error: "exportAsMediaDirect not available - requires Premiere Pro 15.4+"
+            });
+        }
+
         // exportAsMediaDirect renders directly in Premiere without sending to AME
-        // Returns true on success, false on failure
+        // Known issue: May fail on Mac with Premiere Pro 2025
         var result = seq.exportAsMediaDirect(outputPath, presetPath, workAreaType);
 
-        if (result) {
+        if (result === true) {
             return JSON.stringify({
                 success: true,
                 message: "Export completed"
             });
         } else {
+            var errorMsg = "Export failed";
+            if (isMac) {
+                errorMsg = "Direct export failed on Mac. Known issue with Premiere 2025. Try disabling Premiere Direct option.";
+            } else {
+                errorMsg = "Export failed - check preset compatibility";
+            }
             return JSON.stringify({
                 success: false,
-                error: "Export failed - check preset compatibility"
+                error: errorMsg,
+                platform: isMac ? "mac" : "windows"
             });
         }
     } catch (e) {
         var errorDetails = e.toString();
         if (e.message) {
             errorDetails = e.message;
+        }
+        var isMac = $.os.indexOf("Windows") === -1;
+        if (isMac) {
+            errorDetails += " [Mac: Try using AME instead]";
         }
         return JSON.stringify({
             success: false,
