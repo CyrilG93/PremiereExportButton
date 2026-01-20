@@ -3,14 +3,14 @@
  * Handles export to Adobe Media Encoder
  * 
  * @author CyrilG93
- * @version 1.0.8
+ * @version 1.0.4
  */
 
 /**
  * Get system information (OS and Downloads folder path)
  * @returns {string} JSON string with system info
  */
-function ExportButton_getSystemInfo() {
+function getSystemInfo() {
     try {
         var isWindows = $.os.indexOf("Windows") !== -1;
         var downloadsPath = "";
@@ -40,7 +40,7 @@ function ExportButton_getSystemInfo() {
  * Get available AME presets from system
  * @returns {string} JSON string with preset paths
  */
-function ExportButton_getDefaultPresetPaths() {
+function getDefaultPresetPaths() {
     try {
         var isWindows = $.os.indexOf("Windows") !== -1;
         var presetPaths = [];
@@ -83,7 +83,7 @@ function ExportButton_getDefaultPresetPaths() {
  * Get active sequence information
  * @returns {string} JSON string with sequence info
  */
-function ExportButton_getActiveSequence() {
+function getActiveSequence() {
     try {
         if (!app.project) {
             return JSON.stringify({
@@ -118,56 +118,32 @@ function ExportButton_getActiveSequence() {
  * Uses app.getCurrentProjectViewSelection() (Premiere Pro 15.4+)
  * @returns {string} JSON string with array of selected sequences
  */
-function ExportButton_getSelectedSequences() {
+function getSelectedSequences() {
     try {
         if (!app.project) {
             return JSON.stringify({
                 success: false,
                 sequences: [],
-                count: 0,
                 error: "No project open"
             });
         }
 
         // Get currently selected items in Project panel
         // This API was added in Premiere Pro 15.4
-        // On Windows, this API can sometimes hang - we wrap in extra safety
-        var selectedItems = null;
+        var selectedItems = [];
 
-        // Check if the function exists first
-        if (typeof app.getCurrentProjectViewSelection !== 'function') {
+        if (typeof app.getCurrentProjectViewSelection === 'function') {
+            selectedItems = app.getCurrentProjectViewSelection();
+        } else {
             // Fallback for older versions - not supported
             return JSON.stringify({
-                success: true,
+                success: false,
                 sequences: [],
-                count: 0,
                 error: "Batch export requires Premiere Pro 15.4 or later"
             });
         }
 
-        // Try to get selection - wrap in its own try-catch
-        try {
-            selectedItems = app.getCurrentProjectViewSelection();
-        } catch (selectionError) {
-            // Selection API failed - return empty (will fall back to active sequence)
-            return JSON.stringify({
-                success: true,
-                sequences: [],
-                count: 0,
-                error: "Selection API error: " + selectionError.toString()
-            });
-        }
-
-        // Verify we got a valid result
-        if (!selectedItems || typeof selectedItems.length === 'undefined') {
-            return JSON.stringify({
-                success: true,
-                sequences: [],
-                count: 0
-            });
-        }
-
-        if (selectedItems.length === 0) {
+        if (!selectedItems || selectedItems.length === 0) {
             return JSON.stringify({
                 success: true,
                 sequences: [],
@@ -183,17 +159,12 @@ function ExportButton_getSelectedSequences() {
 
             // Check if item is a sequence
             // ProjectItem.isSequence() returns true for sequence items
-            try {
-                if (item && typeof item.isSequence === 'function' && item.isSequence()) {
-                    sequences.push({
-                        name: item.name,
-                        nodeId: item.nodeId || "",
-                        treePath: item.treePath || ""
-                    });
-                }
-            } catch (itemError) {
-                // Skip this item if there's an issue checking it
-                continue;
+            if (item && typeof item.isSequence === 'function' && item.isSequence()) {
+                sequences.push({
+                    name: item.name,
+                    nodeId: item.nodeId,
+                    treePath: item.treePath
+                });
             }
         }
 
@@ -207,7 +178,6 @@ function ExportButton_getSelectedSequences() {
         return JSON.stringify({
             success: false,
             sequences: [],
-            count: 0,
             error: e.toString()
         });
     }
@@ -218,7 +188,7 @@ function ExportButton_getSelectedSequences() {
  * A track with clips but muted/hidden counts as no video for export purposes
  * @returns {string} JSON string with hasVideo boolean
  */
-function ExportButton_hasVideoTracks() {
+function hasVideoTracks() {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {
@@ -271,7 +241,7 @@ function ExportButton_hasVideoTracks() {
  * Get sequence name for output file
  * @returns {string} JSON string with sequence name
  */
-function ExportButton_getSequenceName() {
+function getSequenceName() {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {
@@ -301,7 +271,7 @@ function ExportButton_getSequenceName() {
 /**
  * EXPORT FILE - With Windows path normalization
  */
-function ExportButton_exportToAME(outputPath, presetPath) {
+function exportToAME(outputPath, presetPath) {
     try {
         // Check if encoder is available
         if (!app.encoder) {
@@ -378,7 +348,7 @@ function ExportButton_exportToAME(outputPath, presetPath) {
  * @param {string} sequenceName - Name of the sequence to find
  * @returns {Sequence|null} The sequence object or null
  */
-function ExportButton_findSequenceByName(sequenceName) {
+function findSequenceByName(sequenceName) {
     if (!app.project || !app.project.sequences) {
         return null;
     }
@@ -398,9 +368,9 @@ function ExportButton_findSequenceByName(sequenceName) {
  * @param {string} sequenceName - Name of the sequence
  * @returns {string} JSON string with hasVideo boolean
  */
-function ExportButton_hasVideoForSequence(sequenceName) {
+function hasVideoForSequence(sequenceName) {
     try {
-        var seq = ExportButton_findSequenceByName(sequenceName);
+        var seq = findSequenceByName(sequenceName);
         if (!seq) {
             return JSON.stringify({
                 success: false,
@@ -452,7 +422,7 @@ function ExportButton_hasVideoForSequence(sequenceName) {
  * @param {string} presetPath - Path to the preset file
  * @returns {string} JSON string with result
  */
-function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath) {
+function exportSequenceByName(sequenceName, outputPath, presetPath) {
     try {
         // Check if encoder is available
         if (!app.encoder) {
@@ -463,7 +433,7 @@ function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath)
         }
 
         // Find the sequence
-        var seq = ExportButton_findSequenceByName(sequenceName);
+        var seq = findSequenceByName(sequenceName);
         if (!seq) {
             return JSON.stringify({
                 success: false,
@@ -524,7 +494,7 @@ function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath)
 /**
  * Start the AME batch (call after queueing all sequences)
  */
-function ExportButton_startAMEBatch() {
+function startAMEBatch() {
     try {
         if (app.encoder) {
             app.encoder.startBatch();
@@ -540,7 +510,7 @@ function ExportButton_startAMEBatch() {
 /**
  * Verify if a preset file exists
  */
-function ExportButton_verifyPresetExists(presetPath) {
+function verifyPresetExists(presetPath) {
     try {
         var presetFile = new File(presetPath);
         return JSON.stringify({
@@ -558,7 +528,7 @@ function ExportButton_verifyPresetExists(presetPath) {
 /**
  * Get the EXPORTS folder path relative to the project
  */
-function ExportButton_getProjectExportsPath() {
+function getProjectExportsPath() {
     try {
         if (!app.project || !app.project.path) {
             return JSON.stringify({
@@ -607,7 +577,7 @@ function ExportButton_getProjectExportsPath() {
  * Get next versioned filename
  * Format: NAME_V1.ext
  */
-function ExportButton_getNextVersionedFilename(folderPath, baseName, extension) {
+function getNextVersionedFilename(folderPath, baseName, extension) {
     try {
         var folder = new Folder(folderPath);
         var isWindows = $.os.indexOf("Windows") !== -1;
@@ -680,7 +650,7 @@ function ExportButton_getNextVersionedFilename(folderPath, baseName, extension) 
  * @param {string} extension - File extension
  * @param {string} suffixPattern - Pattern like "_V{V}" or "_{DATE}_{V}"
  */
-function ExportButton_getNextVersionedFilenameWithPattern(folderPath, baseName, extension, suffixPattern) {
+function getNextVersionedFilenameWithPattern(folderPath, baseName, extension, suffixPattern) {
     try {
         var folder = new Folder(folderPath);
         var isWindows = $.os.indexOf("Windows") !== -1;
@@ -744,7 +714,7 @@ function ExportButton_getNextVersionedFilenameWithPattern(folderPath, baseName, 
  * Get exports path with custom folder name
  * @param {string} customFolderName - Name of the export folder (default: "EXPORTS")
  */
-function ExportButton_getProjectExportsPathCustom(customFolderName) {
+function getProjectExportsPathCustom(customFolderName) {
     try {
         if (!customFolderName) {
             customFolderName = "EXPORTS";
@@ -796,7 +766,7 @@ function ExportButton_getProjectExportsPathCustom(customFolderName) {
  * @param {string} customFolderName - Name of the export folder
  * @param {number} depth - How many folders to go up (0 = beside project, 1 = one up, etc.)
  */
-function ExportButton_getProjectExportsPathWithDepth(customFolderName, depth) {
+function getProjectExportsPathWithDepth(customFolderName, depth) {
     try {
         if (!customFolderName) {
             customFolderName = "EXPORTS";
@@ -855,7 +825,7 @@ function ExportButton_getProjectExportsPathWithDepth(customFolderName, depth) {
  * @param {string} presetPath - Preset file path
  * @param {boolean} useInOut - If true, export only In/Out range
  */
-function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
+function exportToAMEWithOptions(outputPath, presetPath, useInOut) {
     try {
         if (!app.encoder) {
             return JSON.stringify({
@@ -932,7 +902,7 @@ function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
  * @param {boolean} useInOut - If true, export only In/Out range
  * @returns {string} JSON string with result
  */
-function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
+function exportDirectInPremiere(outputPath, presetPath, useInOut) {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {
@@ -942,18 +912,11 @@ function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
             });
         }
 
-        // Detect platform
+        // Normalize paths for Windows
         var isWindows = $.os.indexOf("Windows") !== -1;
-        var isMac = !isWindows;
-
-        // Normalize paths based on platform
         if (isWindows) {
             outputPath = outputPath.replace(/\//g, "\\");
             presetPath = presetPath.replace(/\//g, "\\");
-        } else {
-            // Mac: ensure forward slashes
-            outputPath = outputPath.replace(/\\/g, "/");
-            presetPath = presetPath.replace(/\\/g, "/");
         }
 
         // Verify preset file exists
@@ -965,60 +928,28 @@ function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
             });
         }
 
-        // Create output directory if it doesn't exist
-        var outputFile = new File(outputPath);
-        var outputFolder = outputFile.parent;
-        if (outputFolder && !outputFolder.exists) {
-            outputFolder.create();
-        }
-
         // workAreaType: 0 = entire sequence, 1 = in/out points
         var workAreaType = useInOut ? 1 : 0;
 
-        // Check if exportAsMediaDirect exists
-        if (typeof seq.exportAsMediaDirect !== 'function') {
-            return JSON.stringify({
-                success: false,
-                error: "exportAsMediaDirect not available - requires Premiere Pro 15.4+"
-            });
-        }
-
         // exportAsMediaDirect renders directly in Premiere without sending to AME
-        // Note: Return value is unreliable on Mac - may return false even on success
+        // Returns true on success, false on failure
         var result = seq.exportAsMediaDirect(outputPath, presetPath, workAreaType);
 
-        // Check if file was created (more reliable than return value on Mac)
-        $.sleep(500); // Brief wait for file system
-        var exportedFile = new File(outputPath);
-        var fileCreated = exportedFile.exists;
-
-        if (result === true || fileCreated) {
+        if (result) {
             return JSON.stringify({
                 success: true,
-                message: "Export completed",
-                fileExists: fileCreated
+                message: "Export completed"
             });
         } else {
-            var errorMsg = "Export failed";
-            if (isMac) {
-                errorMsg = "Direct export failed on Mac. Try disabling Premiere Direct option.";
-            } else {
-                errorMsg = "Export failed - check preset compatibility";
-            }
             return JSON.stringify({
                 success: false,
-                error: errorMsg,
-                platform: isMac ? "mac" : "windows"
+                error: "Export failed - check preset compatibility"
             });
         }
     } catch (e) {
         var errorDetails = e.toString();
         if (e.message) {
             errorDetails = e.message;
-        }
-        var isMac = $.os.indexOf("Windows") === -1;
-        if (isMac) {
-            errorDetails += " [Mac: Try using AME instead]";
         }
         return JSON.stringify({
             success: false,
