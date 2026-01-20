@@ -10,7 +10,7 @@
  * Get system information (OS and Downloads folder path)
  * @returns {string} JSON string with system info
  */
-function getSystemInfo() {
+function ExportButton_getSystemInfo() {
     try {
         var isWindows = $.os.indexOf("Windows") !== -1;
         var downloadsPath = "";
@@ -40,7 +40,7 @@ function getSystemInfo() {
  * Get available AME presets from system
  * @returns {string} JSON string with preset paths
  */
-function getDefaultPresetPaths() {
+function ExportButton_getDefaultPresetPaths() {
     try {
         var isWindows = $.os.indexOf("Windows") !== -1;
         var presetPaths = [];
@@ -83,7 +83,7 @@ function getDefaultPresetPaths() {
  * Get active sequence information
  * @returns {string} JSON string with sequence info
  */
-function getActiveSequence() {
+function ExportButton_getActiveSequence() {
     try {
         if (!app.project) {
             return JSON.stringify({
@@ -118,7 +118,7 @@ function getActiveSequence() {
  * Uses app.getCurrentProjectViewSelection() (Premiere Pro 15.4+)
  * @returns {string} JSON string with array of selected sequences
  */
-function getSelectedSequences() {
+function ExportButton_getSelectedSequences() {
     try {
         if (!app.project) {
             return JSON.stringify({
@@ -188,7 +188,7 @@ function getSelectedSequences() {
  * A track with clips but muted/hidden counts as no video for export purposes
  * @returns {string} JSON string with hasVideo boolean
  */
-function hasVideoTracks() {
+function ExportButton_hasVideoTracks() {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {
@@ -241,7 +241,7 @@ function hasVideoTracks() {
  * Get sequence name for output file
  * @returns {string} JSON string with sequence name
  */
-function getSequenceName() {
+function ExportButton_getSequenceName() {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {
@@ -271,7 +271,7 @@ function getSequenceName() {
 /**
  * EXPORT FILE - With Windows path normalization
  */
-function exportToAME(outputPath, presetPath) {
+function ExportButton_exportToAME(outputPath, presetPath) {
     try {
         // Check if encoder is available
         if (!app.encoder) {
@@ -348,7 +348,7 @@ function exportToAME(outputPath, presetPath) {
  * @param {string} sequenceName - Name of the sequence to find
  * @returns {Sequence|null} The sequence object or null
  */
-function findSequenceByName(sequenceName) {
+function ExportButton_findSequenceByName(sequenceName) {
     if (!app.project || !app.project.sequences) {
         return null;
     }
@@ -368,9 +368,9 @@ function findSequenceByName(sequenceName) {
  * @param {string} sequenceName - Name of the sequence
  * @returns {string} JSON string with hasVideo boolean
  */
-function hasVideoForSequence(sequenceName) {
+function ExportButton_hasVideoForSequence(sequenceName) {
     try {
-        var seq = findSequenceByName(sequenceName);
+        var seq = ExportButton_findSequenceByName(sequenceName);
         if (!seq) {
             return JSON.stringify({
                 success: false,
@@ -422,7 +422,7 @@ function hasVideoForSequence(sequenceName) {
  * @param {string} presetPath - Path to the preset file
  * @returns {string} JSON string with result
  */
-function exportSequenceByName(sequenceName, outputPath, presetPath) {
+function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath) {
     try {
         // Check if encoder is available
         if (!app.encoder) {
@@ -433,7 +433,7 @@ function exportSequenceByName(sequenceName, outputPath, presetPath) {
         }
 
         // Find the sequence
-        var seq = findSequenceByName(sequenceName);
+        var seq = ExportButton_findSequenceByName(sequenceName);
         if (!seq) {
             return JSON.stringify({
                 success: false,
@@ -494,7 +494,7 @@ function exportSequenceByName(sequenceName, outputPath, presetPath) {
 /**
  * Start the AME batch (call after queueing all sequences)
  */
-function startAMEBatch() {
+function ExportButton_startAMEBatch() {
     try {
         if (app.encoder) {
             app.encoder.startBatch();
@@ -510,7 +510,7 @@ function startAMEBatch() {
 /**
  * Verify if a preset file exists
  */
-function verifyPresetExists(presetPath) {
+function ExportButton_verifyPresetExists(presetPath) {
     try {
         var presetFile = new File(presetPath);
         return JSON.stringify({
@@ -528,7 +528,7 @@ function verifyPresetExists(presetPath) {
 /**
  * Get the EXPORTS folder path relative to the project
  */
-function getProjectExportsPath() {
+function ExportButton_getProjectExportsPath() {
     try {
         if (!app.project || !app.project.path) {
             return JSON.stringify({
@@ -577,7 +577,7 @@ function getProjectExportsPath() {
  * Get next versioned filename
  * Format: NAME_V1.ext
  */
-function getNextVersionedFilename(folderPath, baseName, extension) {
+function ExportButton_getNextVersionedFilename(folderPath, baseName, extension) {
     try {
         var folder = new Folder(folderPath);
         var isWindows = $.os.indexOf("Windows") !== -1;
@@ -650,7 +650,7 @@ function getNextVersionedFilename(folderPath, baseName, extension) {
  * @param {string} extension - File extension
  * @param {string} suffixPattern - Pattern like "_V{V}" or "_{DATE}_{V}"
  */
-function getNextVersionedFilenameWithPattern(folderPath, baseName, extension, suffixPattern) {
+function ExportButton_getNextVersionedFilenameWithPattern(folderPath, baseName, extension, suffixPattern) {
     try {
         var folder = new Folder(folderPath);
         var isWindows = $.os.indexOf("Windows") !== -1;
@@ -714,7 +714,7 @@ function getNextVersionedFilenameWithPattern(folderPath, baseName, extension, su
  * Get exports path with custom folder name
  * @param {string} customFolderName - Name of the export folder (default: "EXPORTS")
  */
-function getProjectExportsPathCustom(customFolderName) {
+function ExportButton_getProjectExportsPathCustom(customFolderName) {
     try {
         if (!customFolderName) {
             customFolderName = "EXPORTS";
@@ -766,7 +766,7 @@ function getProjectExportsPathCustom(customFolderName) {
  * @param {string} customFolderName - Name of the export folder
  * @param {number} depth - How many folders to go up (0 = beside project, 1 = one up, etc.)
  */
-function getProjectExportsPathWithDepth(customFolderName, depth) {
+function ExportButton_getProjectExportsPathWithDepth(customFolderName, depth) {
     try {
         if (!customFolderName) {
             customFolderName = "EXPORTS";
@@ -825,7 +825,7 @@ function getProjectExportsPathWithDepth(customFolderName, depth) {
  * @param {string} presetPath - Preset file path
  * @param {boolean} useInOut - If true, export only In/Out range
  */
-function exportToAMEWithOptions(outputPath, presetPath, useInOut) {
+function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
     try {
         if (!app.encoder) {
             return JSON.stringify({
@@ -902,7 +902,7 @@ function exportToAMEWithOptions(outputPath, presetPath, useInOut) {
  * @param {boolean} useInOut - If true, export only In/Out range
  * @returns {string} JSON string with result
  */
-function exportDirectInPremiere(outputPath, presetPath, useInOut) {
+function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {

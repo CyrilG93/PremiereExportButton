@@ -134,7 +134,7 @@ function testExtendScript() {
     });
 
     // Test if our functions are available
-    csInterface.evalScript('typeof getActiveSequence', function (result) {
+    csInterface.evalScript('typeof ExportButton_getActiveSequence', function (result) {
         debugLog('getActiveSequence available: ' + result, result === 'function' ? 'success' : 'error');
     });
 }
@@ -270,7 +270,7 @@ function setupEventListeners() {
  * Get system information from ExtendScript
  */
 function getSystemInfo() {
-    csInterface.evalScript('getSystemInfo()', function (result) {
+    csInterface.evalScript('ExportButton_getSystemInfo()', function (result) {
         try {
             var info = JSON.parse(result);
             if (info.isWindows) {
@@ -318,7 +318,7 @@ function handleExport() {
 
     // First, check if there are sequences selected in Project panel
     debugLog('Checking for selected sequences...', 'info');
-    csInterface.evalScript('getSelectedSequences()', function (result) {
+    csInterface.evalScript('ExportButton_getSelectedSequences()', function (result) {
         debugLog('getSelectedSequences result: ' + result, 'info');
 
         try {
@@ -360,7 +360,7 @@ function handleBatchExport(sequences) {
         if (currentIndex >= totalCount) {
             // All done - start the batch
             debugLog('All sequences queued, starting AME batch...', 'info');
-            csInterface.evalScript('startAMEBatch()', function (result) {
+            csInterface.evalScript('ExportButton_startAMEBatch()', function (result) {
                 setStatus('Batch started: ' + successCount + '/' + totalCount, 'success');
                 debugLog('Batch export complete: ' + successCount + ' success, ' + errorCount + ' errors', 'success');
             });
@@ -373,7 +373,7 @@ function handleBatchExport(sequences) {
 
         // Get video info for this sequence
         var escapedName = seq.name.replace(/'/g, "\\'");
-        csInterface.evalScript("hasVideoForSequence('" + escapedName + "')", function (videoResult) {
+        csInterface.evalScript("ExportButton_hasVideoForSequence('" + escapedName + "')", function (videoResult) {
             try {
                 var videoInfo = JSON.parse(videoResult);
                 var hasVideo = videoInfo.hasVideo || false;
@@ -401,7 +401,7 @@ function handleBatchExport(sequences) {
                         }
                     });
                 } else {
-                    csInterface.evalScript('getProjectExportsPath()', function (pathResult) {
+                    csInterface.evalScript('ExportButton_getProjectExportsPath()', function (pathResult) {
                         try {
                             var pathInfo = JSON.parse(pathResult);
                             if (pathInfo.success) {
@@ -441,7 +441,7 @@ function handleBatchExport(sequences) {
             var safeBaseName = cleanName.replace(/'/g, "\\'");
             var safeNamingPattern = namingPattern.replace(/'/g, "\\'");
 
-            csInterface.evalScript("getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeNamingPattern + "')", function (verResult) {
+            csInterface.evalScript("ExportButton_getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeNamingPattern + "')", function (verResult) {
                 try {
                     var verInfo = JSON.parse(verResult);
                     var version = verInfo.success ? verInfo.version : 1;
@@ -456,7 +456,7 @@ function handleBatchExport(sequences) {
                     var escapedPreset = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                     var escapedSeqName = seqName.replace(/'/g, "\\'");
 
-                    var script = "exportSequenceByName('" + escapedSeqName + "', '" + escapedOutput + "', '" + escapedPreset + "')";
+                    var script = "ExportButton_exportSequenceByName('" + escapedSeqName + "', '" + escapedOutput + "', '" + escapedPreset + "')";
                     debugLog('Queueing: ' + fileName, 'info');
 
                     csInterface.evalScript(script, function (exportResult) {
@@ -496,7 +496,7 @@ function handleBatchExport(sequences) {
  */
 function handleSingleExport() {
     debugLog('Calling getActiveSequence()...', 'info');
-    csInterface.evalScript('getActiveSequence()', function (result) {
+    csInterface.evalScript('ExportButton_getActiveSequence()', function (result) {
         debugLog('getActiveSequence result: ' + result, result ? 'info' : 'error');
 
         try {
@@ -530,7 +530,7 @@ function handleSingleExport() {
  * @param {string} sequenceName - Name of the sequence
  */
 function checkVideoAndExport(sequenceName) {
-    csInterface.evalScript('hasVideoTracks()', function (result) {
+    csInterface.evalScript('ExportButton_hasVideoTracks()', function (result) {
         try {
             var videoInfo = JSON.parse(result);
             var hasVideo = videoInfo.hasVideo;
@@ -582,7 +582,7 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
             getVersionedFilenameAndExport(fixedFolder, cleanName, presetPath, hasVideo);
         } else {
             // Use default Downloads folder
-            csInterface.evalScript('getSystemInfo()', function (result) {
+            csInterface.evalScript('ExportButton_getSystemInfo()', function (result) {
                 try {
                     var info = JSON.parse(result);
                     var folderPath = info.downloadsPath;
@@ -595,7 +595,7 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
     } else {
         // Export to project folder with custom folder name and depth
         var safefolderName = customExportFolder.replace(/'/g, "\\'");
-        csInterface.evalScript("getProjectExportsPathWithDepth('" + safefolderName + "', " + folderDepth + ")", function (result) {
+        csInterface.evalScript("ExportButton_getProjectExportsPathWithDepth('" + safefolderName + "', " + folderDepth + ")", function (result) {
             try {
                 var pathInfo = JSON.parse(result);
 
@@ -678,7 +678,7 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
     var safeNamingPattern = namingPattern.replace(/'/g, "\\'");
 
     // Pass pattern to ExtendScript for version detection
-    var script = "getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeNamingPattern + "')";
+    var script = "ExportButton_getNextVersionedFilenameWithPattern('" + safeFolderPath + "', '" + safeBaseName + "', '" + extension + "', '" + safeNamingPattern + "')";
     debugLog('Getting version...', 'info');
 
     csInterface.evalScript(script, function (result) {
@@ -825,10 +825,10 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     // Choose export method based on setting
     var script;
     if (premiereDirect) {
-        script = "exportDirectInPremiere('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+        script = "ExportButton_exportDirectInPremiere('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
         debugLog('Using Premiere Direct export', 'info');
     } else {
-        script = "exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+        script = "ExportButton_exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
         debugLog('Using AME export', 'info');
     }
     debugLog('Script: ' + script, 'info');
