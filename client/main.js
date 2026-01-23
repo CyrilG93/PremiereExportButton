@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  * 
  * @author CyrilG93
- * @version 1.0.4
+ * @version 1.0.8
  */
 
 // Global CSInterface instance
@@ -318,7 +318,26 @@ function handleExport() {
 
     // First, check if there are sequences selected in Project panel
     debugLog('Checking for selected sequences...', 'info');
+
+    // Add timeout to prevent hanging on Windows
+    var selectionCallbackFired = false;
+    var selectionTimeout = setTimeout(function () {
+        if (!selectionCallbackFired) {
+            selectionCallbackFired = true;
+            debugLog('Selection check timed out - falling back to active sequence', 'warning');
+            handleSingleExport();
+        }
+    }, 3000); // 3 second timeout
+
     csInterface.evalScript('ExportButton_getSelectedSequences()', function (result) {
+        // Cancel timeout and mark callback as fired
+        clearTimeout(selectionTimeout);
+        if (selectionCallbackFired) {
+            // Timeout already fired, ignore this late callback
+            return;
+        }
+        selectionCallbackFired = true;
+
         debugLog('getSelectedSequences result: ' + result, 'info');
 
         try {
@@ -341,6 +360,7 @@ function handleExport() {
         }
     });
 }
+
 
 /**
  * Handle batch export of multiple sequences
@@ -388,7 +408,7 @@ function handleBatchExport(sequences) {
 
                 // Determine output folder
                 if (downloadEnabled) {
-                    csInterface.evalScript('getSystemInfo()', function (sysResult) {
+                    csInterface.evalScript('ExportButton_getSystemInfo()', function (sysResult) {
                         try {
                             var sysInfo = JSON.parse(sysResult);
                             var folderPath = sysInfo.downloadsPath;

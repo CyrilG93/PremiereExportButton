@@ -27,6 +27,10 @@ if [ -d "$TARGET_DIR" ]; then
 fi
 
 # Copy extension files
+
+# ------------------------------------------------------------------------------
+# Copy extension files
+# ------------------------------------------------------------------------------
 echo "Copying extension files..."
 cp -R "$SCRIPT_DIR" "$TARGET_DIR"
 

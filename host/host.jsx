@@ -3,7 +3,7 @@
  * Handles export to Adobe Media Encoder
  * 
  * @author CyrilG93
- * @version 1.0.4
+ * @version 1.0.8
  */
 
 /**
@@ -124,26 +124,50 @@ function ExportButton_getSelectedSequences() {
             return JSON.stringify({
                 success: false,
                 sequences: [],
+                count: 0,
                 error: "No project open"
             });
         }
 
         // Get currently selected items in Project panel
         // This API was added in Premiere Pro 15.4
-        var selectedItems = [];
+        // On Windows, this API can sometimes hang - we wrap in extra safety
+        var selectedItems = null;
 
-        if (typeof app.getCurrentProjectViewSelection === 'function') {
-            selectedItems = app.getCurrentProjectViewSelection();
-        } else {
+        // Check if the function exists first
+        if (typeof app.getCurrentProjectViewSelection !== 'function') {
             // Fallback for older versions - not supported
             return JSON.stringify({
-                success: false,
+                success: true,
                 sequences: [],
+                count: 0,
                 error: "Batch export requires Premiere Pro 15.4 or later"
             });
         }
 
-        if (!selectedItems || selectedItems.length === 0) {
+        // Try to get selection - wrap in its own try-catch
+        try {
+            selectedItems = app.getCurrentProjectViewSelection();
+        } catch (selectionError) {
+            // Selection API failed - return empty (will fall back to active sequence)
+            return JSON.stringify({
+                success: true,
+                sequences: [],
+                count: 0,
+                error: "Selection API error: " + selectionError.toString()
+            });
+        }
+
+        // Verify we got a valid result
+        if (!selectedItems || typeof selectedItems.length === 'undefined') {
+            return JSON.stringify({
+                success: true,
+                sequences: [],
+                count: 0
+            });
+        }
+
+        if (selectedItems.length === 0) {
             return JSON.stringify({
                 success: true,
                 sequences: [],
@@ -159,12 +183,17 @@ function ExportButton_getSelectedSequences() {
 
             // Check if item is a sequence
             // ProjectItem.isSequence() returns true for sequence items
-            if (item && typeof item.isSequence === 'function' && item.isSequence()) {
-                sequences.push({
-                    name: item.name,
-                    nodeId: item.nodeId,
-                    treePath: item.treePath
-                });
+            try {
+                if (item && typeof item.isSequence === 'function' && item.isSequence()) {
+                    sequences.push({
+                        name: item.name,
+                        nodeId: item.nodeId || "",
+                        treePath: item.treePath || ""
+                    });
+                }
+            } catch (itemError) {
+                // Skip this item if there's an issue checking it
+                continue;
             }
         }
 
@@ -178,6 +207,7 @@ function ExportButton_getSelectedSequences() {
         return JSON.stringify({
             success: false,
             sequences: [],
+            count: 0,
             error: e.toString()
         });
     }
