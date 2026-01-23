@@ -22,7 +22,7 @@ A powerful CEP extension for quick, customizable exports via Adobe Media Encoder
 
 - **Export Button** (large square) - Exports sequences
 - **Checkbox** - Enable to export to Fixed Folder instead of project folder
-- **Settings** (gear icon) - Configure all export options
+- **Settings** Configure all export options
 - **Debug Panel** - Shows detailed logs for troubleshooting
 
 ---
