@@ -22,6 +22,86 @@ var STORAGE_KEYS = {
     PREMIERE_DIRECT: 'exportButton_premiereDirect'
 };
 
+// --- PERSISTENCE MODULE ---
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+var Persistence = {
+    settings: {},
+    filePath: null,
+
+    init: function () {
+        var platform = os.platform();
+        var dataDir;
+        if (platform === 'darwin') {
+            dataDir = path.join(os.homedir(), 'Library', 'Application Support', 'PremiereExportButton');
+        } else {
+            dataDir = path.join(process.env.APPDATA || os.homedir(), 'PremiereExportButton');
+        }
+
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        this.filePath = path.join(dataDir, 'settings.json');
+        this.load();
+    },
+
+    load: function () {
+        if (fs.existsSync(this.filePath)) {
+            try {
+                this.settings = JSON.parse(fs.readFileSync(this.filePath, 'utf8'));
+                console.log('Settings loaded from file');
+            } catch (e) {
+                console.error('Error loading settings:', e);
+            }
+        } else {
+            // Migration logic: load from localStorage
+            this.migrateFromLocalStorage();
+        }
+    },
+
+    migrateFromLocalStorage: function () {
+        console.log('Migrating from localStorage...');
+        var keys = Object.values(STORAGE_KEYS);
+        var hasData = false;
+
+        keys.forEach(function (key) {
+            var val = localStorage.getItem(key);
+            if (val !== null) {
+                this.settings[key] = val;
+                hasData = true;
+            }
+        }.bind(this));
+
+        if (hasData) {
+            this.save();
+        }
+    },
+
+    save: function () {
+        try {
+            fs.writeFileSync(this.filePath, JSON.stringify(this.settings, null, 2));
+        } catch (e) {
+            console.error('Error saving settings:', e);
+        }
+    },
+
+    get: function (key) {
+        var val = this.settings[key];
+        return (val === undefined) ? null : val;
+    },
+
+    set: function (key, value) {
+        // Enforce string storage to match localStorage behavior so logic remains compatible
+        this.settings[key] = String(value);
+        this.save();
+        // Backup to localStorage
+        localStorage.setItem(key, String(value));
+    }
+};
+
 // Default preset paths (will be updated based on OS)
 var defaultPresets = {
     video: '',
@@ -32,6 +112,9 @@ var defaultPresets = {
  * Initialize the extension
  */
 function init() {
+    // Initialize persistence
+    Persistence.init();
+
     // Load saved settings
     loadSettings();
 
@@ -143,16 +226,16 @@ function testExtendScript() {
  * Load saved settings from localStorage
  */
 function loadSettings() {
-    var videoPreset = localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET) || '';
-    var audioPreset = localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET) || '';
-    var downloadEnabled = localStorage.getItem(STORAGE_KEYS.DOWNLOAD_ENABLED) === 'true';
-    var suffixPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
-    var inoutExport = localStorage.getItem(STORAGE_KEYS.INOUT_EXPORT) === 'true';
-    var exportFolder = localStorage.getItem(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
-    var folderDepth = localStorage.getItem(STORAGE_KEYS.FOLDER_DEPTH) || '0';
-    var fixedFolder = localStorage.getItem(STORAGE_KEYS.FIXED_FOLDER) || '';
+    var videoPreset = Persistence.get(STORAGE_KEYS.VIDEO_PRESET) || '';
+    var audioPreset = Persistence.get(STORAGE_KEYS.AUDIO_PRESET) || '';
+    var downloadEnabled = Persistence.get(STORAGE_KEYS.DOWNLOAD_ENABLED) === 'true';
+    var suffixPattern = Persistence.get(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
+    var inoutExport = Persistence.get(STORAGE_KEYS.INOUT_EXPORT) === 'true';
+    var exportFolder = Persistence.get(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
+    var folderDepth = Persistence.get(STORAGE_KEYS.FOLDER_DEPTH) || '0';
+    var fixedFolder = Persistence.get(STORAGE_KEYS.FIXED_FOLDER) || '';
 
-    var premiereDirect = localStorage.getItem(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+    var premiereDirect = Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
 
     document.getElementById('video-preset').value = videoPreset;
     document.getElementById('audio-preset').value = audioPreset;
@@ -178,14 +261,14 @@ function saveSettings() {
     var fixedFolder = document.getElementById('fixed-folder').value;
     var premiereDirect = document.getElementById('premiere-direct').checked;
 
-    localStorage.setItem(STORAGE_KEYS.VIDEO_PRESET, videoPreset);
-    localStorage.setItem(STORAGE_KEYS.AUDIO_PRESET, audioPreset);
-    localStorage.setItem(STORAGE_KEYS.SUFFIX_PATTERN, suffixPattern);
-    localStorage.setItem(STORAGE_KEYS.INOUT_EXPORT, inoutExport);
-    localStorage.setItem(STORAGE_KEYS.EXPORT_FOLDER, exportFolder);
-    localStorage.setItem(STORAGE_KEYS.FOLDER_DEPTH, folderDepth);
-    localStorage.setItem(STORAGE_KEYS.FIXED_FOLDER, fixedFolder);
-    localStorage.setItem(STORAGE_KEYS.PREMIERE_DIRECT, premiereDirect);
+    Persistence.set(STORAGE_KEYS.VIDEO_PRESET, videoPreset);
+    Persistence.set(STORAGE_KEYS.AUDIO_PRESET, audioPreset);
+    Persistence.set(STORAGE_KEYS.SUFFIX_PATTERN, suffixPattern);
+    Persistence.set(STORAGE_KEYS.INOUT_EXPORT, inoutExport);
+    Persistence.set(STORAGE_KEYS.EXPORT_FOLDER, exportFolder);
+    Persistence.set(STORAGE_KEYS.FOLDER_DEPTH, folderDepth);
+    Persistence.set(STORAGE_KEYS.FIXED_FOLDER, fixedFolder);
+    Persistence.set(STORAGE_KEYS.PREMIERE_DIRECT, premiereDirect);
 
     setStatus('Settings saved', 'success');
     closeSettingsModal();
@@ -200,7 +283,7 @@ function setupEventListeners() {
 
     // Download checkbox
     document.getElementById('download-checkbox').addEventListener('change', function () {
-        localStorage.setItem(STORAGE_KEYS.DOWNLOAD_ENABLED, this.checked);
+        Persistence.set(STORAGE_KEYS.DOWNLOAD_ENABLED, this.checked);
     });
 
     // Settings button
@@ -284,10 +367,10 @@ function getSystemInfo() {
             }
 
             // Set defaults if no presets are saved
-            if (!localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET)) {
+            if (!Persistence.get(STORAGE_KEYS.VIDEO_PRESET)) {
                 document.getElementById('video-preset').placeholder = defaultPresets.video;
             }
-            if (!localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET)) {
+            if (!Persistence.get(STORAGE_KEYS.AUDIO_PRESET)) {
                 document.getElementById('audio-preset').placeholder = defaultPresets.audio;
             }
         } catch (e) {
@@ -307,7 +390,7 @@ function handleExport() {
     debugLog('Export button clicked', 'info');
 
     // Check if Premiere Direct export is enabled
-    var premiereDirect = localStorage.getItem(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+    var premiereDirect = Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
 
     // Premiere Direct mode is not compatible with batch export
     if (premiereDirect) {
@@ -401,9 +484,9 @@ function handleBatchExport(sequences) {
                 // Determine preset
                 var presetPath;
                 if (hasVideo) {
-                    presetPath = localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET) || defaultPresets.video;
+                    presetPath = Persistence.get(STORAGE_KEYS.VIDEO_PRESET) || defaultPresets.video;
                 } else {
-                    presetPath = localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET) || defaultPresets.audio;
+                    presetPath = Persistence.get(STORAGE_KEYS.AUDIO_PRESET) || defaultPresets.audio;
                 }
 
                 // Determine output folder
@@ -454,7 +537,7 @@ function handleBatchExport(sequences) {
             var extension = hasVideo ? 'mp4' : 'wav';
 
             // Get naming pattern from settings
-            var namingPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
+            var namingPattern = Persistence.get(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
 
             // Get versioned filename
             var safeFolderPath = folderPath.replace(/\\/g, '\\\\');
@@ -558,9 +641,9 @@ function checkVideoAndExport(sequenceName) {
             // Determine which preset to use
             var presetPath;
             if (hasVideo) {
-                presetPath = localStorage.getItem(STORAGE_KEYS.VIDEO_PRESET) || defaultPresets.video;
+                presetPath = Persistence.get(STORAGE_KEYS.VIDEO_PRESET) || defaultPresets.video;
             } else {
-                presetPath = localStorage.getItem(STORAGE_KEYS.AUDIO_PRESET) || defaultPresets.audio;
+                presetPath = Persistence.get(STORAGE_KEYS.AUDIO_PRESET) || defaultPresets.audio;
             }
 
             if (!presetPath) {
@@ -591,9 +674,9 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
     var cleanName = sequenceName.replace(/[<>:"/\\|?*]/g, '_');
 
     // Get custom settings
-    var customExportFolder = localStorage.getItem(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
-    var folderDepth = parseInt(localStorage.getItem(STORAGE_KEYS.FOLDER_DEPTH) || '0', 10);
-    var fixedFolder = localStorage.getItem(STORAGE_KEYS.FIXED_FOLDER) || '';
+    var customExportFolder = Persistence.get(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
+    var folderDepth = parseInt(Persistence.get(STORAGE_KEYS.FOLDER_DEPTH) || '0', 10);
+    var fixedFolder = Persistence.get(STORAGE_KEYS.FIXED_FOLDER) || '';
 
     if (downloadEnabled) {
         // Check for fixed folder path
@@ -684,7 +767,7 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
     var extension = hasVideo ? "mp4" : "wav";
 
     // Get naming pattern from settings (now full filename pattern, not suffix)
-    var namingPattern = localStorage.getItem(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
+    var namingPattern = Persistence.get(STORAGE_KEYS.SUFFIX_PATTERN) || '{SEQ}_V{V}';
 
     // Check if path has trailing slash
     var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
@@ -821,8 +904,8 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     setStatus('Starting export...', 'warning');
 
     // Get settings
-    var useInOut = localStorage.getItem(STORAGE_KEYS.INOUT_EXPORT) === 'true';
-    var premiereDirect = localStorage.getItem(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+    var useInOut = Persistence.get(STORAGE_KEYS.INOUT_EXPORT) === 'true';
+    var premiereDirect = Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
     debugLog('Use In/Out: ' + useInOut, 'info');
     debugLog('Premiere Direct: ' + premiereDirect, 'info');
 
