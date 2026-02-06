@@ -436,7 +436,49 @@ body {
     color: #ff7c7c;
 }
 
-.debug-log .log-success {
-    background-color: #1e5f2a;
-    color: #7cff8c;
+background-color: #1e5f2a;
+color: #7cff8c;
+}
+
+/* Update Banner */
+#update-banner {
+    display: none;
+    width: 100%;
+    background: linear-gradient(135deg, #00c853 0%, #009624 100%);
+    color: white;
+    text-align: center;
+    padding: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-out;
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+
+#update-banner:hover {
+    background: linear-gradient(135deg, #00e676 0%, #00c853 100%);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Version Badge */
+.version-badge {
+    font-size: 10px;
+    color: #888;
+    background-color: #1a1a1a;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid #444;
 }

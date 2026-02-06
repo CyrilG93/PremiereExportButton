@@ -9,6 +9,10 @@
 // Global CSInterface instance
 var csInterface = new CSInterface();
 
+// UPDATE SYSTEM CONSTANTS
+const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
+let CURRENT_VERSION = '1.1.0';
+
 // Storage keys
 var STORAGE_KEYS = {
     VIDEO_PRESET: 'exportButton_videoPreset',
@@ -19,13 +23,18 @@ var STORAGE_KEYS = {
     EXPORT_FOLDER: 'exportButton_exportFolder',
     FOLDER_DEPTH: 'exportButton_folderDepth',
     FIXED_FOLDER: 'exportButton_fixedFolder',
-    PREMIERE_DIRECT: 'exportButton_premiereDirect'
+    PREMIERE_DIRECT: 'exportButton_premiereDirect',
+    HIDE_DEBUG_LOG: 'exportButton_hideDebugLog'
 };
 
 // --- PERSISTENCE MODULE ---
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const https = require('https');
+
+// Host Locale
+var hostLocale = 'en_US'; // Default
 
 var Persistence = {
     settings: {},
@@ -97,8 +106,6 @@ var Persistence = {
         // Enforce string storage to match localStorage behavior so logic remains compatible
         this.settings[key] = String(value);
         this.save();
-        // Backup to localStorage
-        localStorage.setItem(key, String(value));
     }
 };
 
@@ -117,6 +124,25 @@ function init() {
 
     // Load saved settings
     loadSettings();
+
+    // Check Host Locale
+    csInterface.evalScript('$.locale', function (result) {
+        if (result) hostLocale = result;
+        // Check for updates AFTER getting locale
+        checkForUpdates();
+    });
+
+    // Set Version Badge
+    const badge = document.getElementById('version-badge');
+    if (badge) badge.innerText = 'v' + CURRENT_VERSION;
+
+    // Apply Debug Log Visibility
+    if (Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG) === 'true') {
+        const debugPanel = document.getElementById('debug-panel');
+        if (debugPanel) debugPanel.style.display = 'none';
+        // Adjust container padding or gap if needed?
+        // For now, just hiding it is fine.
+    }
 
     // Setup event listeners
     setupEventListeners();
@@ -176,7 +202,8 @@ function loadJSX(callback) {
     debugLog('Running: ' + evalScript, 'info');
 
     csInterface.evalScript(evalScript, function (evalResult) {
-        debugLog('evalFile result: ' + evalResult, evalResult && evalResult !== 'undefined' ? 'success' : 'error');
+        var isSuccess = evalResult && evalResult !== 'undefined';
+        debugLog('evalFile result: ' + (isSuccess ? 'Loaded' : evalResult), isSuccess ? 'success' : 'error');
         if (callback) callback();
     });
 }
@@ -205,21 +232,97 @@ function debugLog(message, type) {
 /**
  * Test ExtendScript connection
  */
-function testExtendScript() {
-    debugLog('Testing ExtendScript connection...', 'info');
+/**
+ * Compare two semantic versions
+ * Returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+ */
+function compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    const length = Math.max(parts1.length, parts2.length);
 
-    csInterface.evalScript('typeof app', function (result) {
-        debugLog('typeof app = ' + result, result === 'object' ? 'success' : 'error');
-    });
+    for (let i = 0; i < length; i++) {
+        const p1 = parts1[i] || 0;
+        const p2 = parts2[i] || 0;
+        if (p1 > p2) return 1;
+        if (p1 < p2) return -1;
+    }
+    return 0;
+}
 
-    csInterface.evalScript('app.project ? "project exists" : "no project"', function (result) {
-        debugLog('Project check: ' + result, 'info');
-    });
+/**
+ * Check for updates from GitHub Release
+ */
+function checkForUpdates() {
+    try {
+        const options = {
+            hostname: 'api.github.com',
+            path: `/repos/${GITHUB_REPO}/releases/latest`,
+            method: 'GET',
+            headers: {
+                'User-Agent': 'PremiereExportButton',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        };
 
-    // Test if our functions are available
-    csInterface.evalScript('typeof ExportButton_getActiveSequence', function (result) {
-        debugLog('getActiveSequence available: ' + result, result === 'function' ? 'success' : 'error');
-    });
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    try {
+                        const release = JSON.parse(data);
+                        handleUpdateResponse(release, CURRENT_VERSION);
+                    } catch (e) {
+                        console.error('Error parsing GitHub response:', e);
+                    }
+                }
+            });
+        });
+        req.on('error', (e) => console.error('Update check failed:', e));
+        req.end();
+
+    } catch (e) {
+        console.error('Checking updates via https module failed', e);
+    }
+}
+
+/**
+ * Handle the update response
+ */
+function handleUpdateResponse(data, localVersion) {
+    if (!data || !data.tag_name) return;
+
+    const remoteVersion = data.tag_name.replace(/^v/, '');
+    console.log(`Checking updates: Local=${localVersion}, Remote=${remoteVersion}`);
+
+    if (compareVersions(remoteVersion, localVersion) > 0) {
+        // Find zip asset
+        let downloadUrl = data.html_url;
+        if (data.assets && data.assets.length > 0) {
+            const zipAsset = data.assets.find(asset => asset.name.endsWith('.zip'));
+            if (zipAsset) downloadUrl = zipAsset.browser_download_url;
+        }
+        showUpdateBanner(downloadUrl);
+    }
+}
+
+/**
+ * Show the update banner
+ */
+function showUpdateBanner(downloadUrl) {
+    const banner = document.getElementById('update-banner');
+    if (banner) {
+        // i18n logic
+        const isFrench = (hostLocale && hostLocale.toLowerCase().indexOf('fr') !== -1);
+        const msg = isFrench ? "Mise à jour disponible ! Cliquez pour télécharger." : "Update available! Click to download.";
+
+        banner.innerText = msg;
+        banner.style.display = 'block';
+        banner.onclick = function () {
+            csInterface.openURLInDefaultBrowser(downloadUrl);
+        };
+    }
 }
 
 /**
@@ -234,8 +337,8 @@ function loadSettings() {
     var exportFolder = Persistence.get(STORAGE_KEYS.EXPORT_FOLDER) || 'EXPORTS';
     var folderDepth = Persistence.get(STORAGE_KEYS.FOLDER_DEPTH) || '0';
     var fixedFolder = Persistence.get(STORAGE_KEYS.FIXED_FOLDER) || '';
-
     var premiereDirect = Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+    var hideLog = Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG) === 'true';
 
     document.getElementById('video-preset').value = videoPreset;
     document.getElementById('audio-preset').value = audioPreset;
@@ -246,6 +349,7 @@ function loadSettings() {
     document.getElementById('folder-depth').value = folderDepth;
     document.getElementById('fixed-folder').value = fixedFolder;
     document.getElementById('premiere-direct').checked = premiereDirect;
+    document.getElementById('hide-log').checked = hideLog;
 }
 
 /**
@@ -260,6 +364,7 @@ function saveSettings() {
     var folderDepth = document.getElementById('folder-depth').value || '0';
     var fixedFolder = document.getElementById('fixed-folder').value;
     var premiereDirect = document.getElementById('premiere-direct').checked;
+    var hideLog = document.getElementById('hide-log').checked;
 
     Persistence.set(STORAGE_KEYS.VIDEO_PRESET, videoPreset);
     Persistence.set(STORAGE_KEYS.AUDIO_PRESET, audioPreset);
@@ -269,6 +374,10 @@ function saveSettings() {
     Persistence.set(STORAGE_KEYS.FOLDER_DEPTH, folderDepth);
     Persistence.set(STORAGE_KEYS.FIXED_FOLDER, fixedFolder);
     Persistence.set(STORAGE_KEYS.PREMIERE_DIRECT, premiereDirect);
+    Persistence.set(STORAGE_KEYS.HIDE_DEBUG_LOG, hideLog);
+
+    // Apply hide/show log immediately
+    document.getElementById('debug-panel').style.display = hideLog ? 'none' : 'block';
 
     setStatus('Settings saved', 'success');
     closeSettingsModal();

@@ -10,6 +10,9 @@
 
 <body>
     <div id="main-container">
+        <!-- Update Banner -->
+        <div id="update-banner"></div>
+
         <!-- Main Export Button -->
         <button id="export-btn" class="export-button" title="Export via Adobe Media Encoder">
             <svg viewBox="0 0 24 24" class="export-icon">
@@ -58,7 +61,10 @@
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Export Settings</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h3>Export Settings</h3>
+                    <span id="version-badge" class="version-badge"></span>
+                </div>
                 <button id="close-modal" class="close-button">&times;</button>
             </div>
             <div class="modal-body">
@@ -102,6 +108,17 @@
                             <span>Export directly in Premiere (no Media Encoder)</span>
                         </label>
                         <span class="setting-hint">⚠️ Not compatible with batch export (multiple sequences)</span>
+                    </div>
+                </div>
+
+                <!-- Interface Options Section -->
+                <div class="settings-section">
+                    <h4>Interface</h4>
+                    <div class="setting-group checkbox-setting">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="hide-log">
+                            <span>Hide Debug Log window</span>
+                        </label>
                     </div>
                 </div>
 
