@@ -137,12 +137,18 @@ function init() {
     if (badge) badge.innerText = 'v' + CURRENT_VERSION;
 
     // Apply Debug Log Visibility
-    if (Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG) === 'true') {
+    // Default to true (hidden) if not set, or if explicitly true
+    var hideLogVal = Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG);
+    var shouldHide = (hideLogVal !== 'false'); // Hidden by default unless 'false'
+
+    if (shouldHide) {
         const debugPanel = document.getElementById('debug-panel');
         if (debugPanel) debugPanel.style.display = 'none';
-        // Adjust container padding or gap if needed?
-        // For now, just hiding it is fine.
     }
+
+    // Set checkbox state to match actual state used (important for first run)
+    const hideLogCheckbox = document.getElementById('hide-log');
+    if (hideLogCheckbox) hideLogCheckbox.checked = shouldHide;
 
     // Setup event listeners
     setupEventListeners();
@@ -338,7 +344,10 @@ function loadSettings() {
     var folderDepth = Persistence.get(STORAGE_KEYS.FOLDER_DEPTH) || '0';
     var fixedFolder = Persistence.get(STORAGE_KEYS.FIXED_FOLDER) || '';
     var premiereDirect = Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
-    var hideLog = Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG) === 'true';
+
+    // Hide Log Default: True (hidden) unless explicitly 'false'
+    var hideLogVal = Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG);
+    var hideLog = (hideLogVal !== 'false');
 
     document.getElementById('video-preset').value = videoPreset;
     document.getElementById('audio-preset').value = audioPreset;

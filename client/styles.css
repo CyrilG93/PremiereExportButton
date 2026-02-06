@@ -443,18 +443,18 @@ color: #7cff8c;
 /* Update Banner */
 #update-banner {
     display: none;
-    width: 100%;
     background: linear-gradient(135deg, #00c853 0%, #009624 100%);
     color: white;
     text-align: center;
-    padding: 6px;
-    font-size: 11px;
+    padding: 8px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     animation: slideDown 0.3s ease-out;
-    border-radius: 4px;
     margin-bottom: 6px;
+    border-radius: 4px;
+    width: 100%;
 }
 
 #update-banner:hover {
