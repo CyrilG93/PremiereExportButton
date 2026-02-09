@@ -189,6 +189,55 @@ The built-in debug panel shows detailed logs. Common issues:
 
 **CyrilG93** - [@CyrilG93](https://github.com/CyrilG93)
 
+## Changelog
+
+### v1.1.1 (2026-02-09)
+- **Fix**: Export now targets only the open timeline unless multiple sequences are selected
+- Previously, having a single sequence selected in the project panel would export that sequence instead of the open timeline
+
+### v1.1.0
+- Added update notification banner
+- Improved settings persistence
+- Debug log hidden by default
+
+### v1.0.10
+- Fixed batch export on Windows
+- Improved path normalization
+
+### v1.0.9
+- Fixed Premiere Direct export on macOS
+- Improved error handling
+
+### v1.0.8
+- Added custom naming patterns with tokens
+- Added date/time tokens support
+
+### v1.0.7
+- Added In/Out range export option
+- Added folder depth setting
+
+### v1.0.6
+- Fixed direct export path issues
+- Improved preset detection
+
+### v1.0.5
+- Added Premiere Direct export mode
+- Added fixed folder option
+
+### v1.0.4
+- Added batch export for multiple sequences
+- Improved Windows compatibility
+
+### v1.0.2
+- Added audio-only preset support
+- Auto-detection of video/audio sequences
+
+### v1.0.0
+- Initial release
+- Basic export functionality via AME
+
+---
+
 ## License
 
 MIT License
