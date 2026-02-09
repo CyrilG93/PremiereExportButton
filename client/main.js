@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.0';
+let CURRENT_VERSION = '1.1.1';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -544,8 +544,8 @@ function handleExport() {
         try {
             var selectionInfo = JSON.parse(result);
 
-            if (selectionInfo.success && selectionInfo.count > 0) {
-                // Batch export mode!
+            if (selectionInfo.success && selectionInfo.count > 1) {
+                // Batch export mode! Only when MULTIPLE sequences are selected
                 debugLog('Batch export: ' + selectionInfo.count + ' sequences selected', 'success');
                 setStatus('Batch: ' + selectionInfo.count + ' sequences', 'warning');
                 handleBatchExport(selectionInfo.sequences);

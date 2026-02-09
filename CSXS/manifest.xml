@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.cyrilg93.exportbutton" ExtensionBundleVersion="1.1.0"
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.cyrilg93.exportbutton" ExtensionBundleVersion="1.1.1"
                    ExtensionBundleName="Export Button" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Author>CyrilG93</Author>
   <Contact>cyril.vellas@bluewin.ch</Contact>
   <Legal>All rights reserved.</Legal>
   <Abstract>Quick export button for Premiere Pro via Adobe Media Encoder</Abstract>
   <ExtensionList>
-    <Extension Id="com.cyrilg93.exportbutton.panel" Version="1.1.0"/>
+    <Extension Id="com.cyrilg93.exportbutton.panel" Version="1.1.1"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
