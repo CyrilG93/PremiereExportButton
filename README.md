@@ -155,7 +155,13 @@ Depth 2 → /Movies/EXPORTS/                   (two folders up)
 ## Installation
 
 ### macOS
+Open Terminal.
+
+**Easiest method (recommended):** drag and drop `install_mac.sh` into the Terminal window, then press Enter.
+
+**Manual method (command line):**
 ```bash
+cd /path/to/PremiereExportButton
 chmod +x install_mac.sh
 ./install_mac.sh
 ```
