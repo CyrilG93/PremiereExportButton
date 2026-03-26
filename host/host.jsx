@@ -1,9 +1,9 @@
 /**
  * Premiere Pro ExtendScript for Export Button
  * Handles export to Adobe Media Encoder
- * 
+ *
  * @author CyrilG93
- * @version 1.1.1
+ * @version 1.1.2
  */
 
 /**

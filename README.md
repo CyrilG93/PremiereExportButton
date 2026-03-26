@@ -197,6 +197,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.2 (2026-03-26)
+- **Fix**: Export filenames now keep dots inside the sequence name by always sending Adobe a full filename with the real extension
+- Example: `03 26 Aspire 4.0_Andreas` now exports as `03 26 Aspire 4.0_Andreas_V1`
+
 ### v1.1.1 (2026-02-09)
 - **Fix**: Export now targets only the open timeline unless multiple sequences are selected
 - Previously, having a single sequence selected in the project panel would export that sequence instead of the open timeline

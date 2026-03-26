@@ -1,9 +1,9 @@
 /**
  * Premiere Pro Export Button - Main JavaScript
  * Handles UI interactions and export logic
- * 
+ *
  * @author CyrilG93
- * @version 1.0.9
+ * @version 1.1.2
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.1';
+let CURRENT_VERSION = '1.1.2';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -671,14 +671,16 @@ function handleBatchExport(sequences) {
                     var fileName = parseSuffixPattern(namingPattern, version, cleanName);
                     var sep = (folderPath.indexOf('\\') !== -1) ? '\\' : '/';
                     var outputPath = folderPath + sep + fileName;
+                    // Always pass a real file extension so Adobe does not truncate names containing dots.
+                    var finalOutputPath = buildExportOutputPath(outputPath, presetPath, hasVideo);
 
                     // Escape for ExtendScript
-                    var escapedOutput = outputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    var escapedOutput = finalOutputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                     var escapedPreset = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                     var escapedSeqName = seqName.replace(/'/g, "\\'");
 
                     var script = "ExportButton_exportSequenceByName('" + escapedSeqName + "', '" + escapedOutput + "', '" + escapedPreset + "')";
-                    debugLog('Queueing: ' + fileName, 'info');
+                    debugLog('Queueing: ' + finalOutputPath.split(/[/\\]/).pop(), 'info');
 
                     csInterface.evalScript(script, function (exportResult) {
                         try {
@@ -1007,6 +1009,27 @@ function getExtensionFromPreset(presetPath, hasVideo) {
 }
 
 /**
+ * Build the final output path with the extension expected by Adobe.
+ * @param {string} outputPath - Output path without extension
+ * @param {string} presetPath - Path to the preset file
+ * @param {boolean} hasVideo - Whether export includes video
+ * @returns {string} Output path with extension
+ */
+function buildExportOutputPath(outputPath, presetPath, hasVideo) {
+    var extension = getExtensionFromPreset(presetPath, hasVideo);
+    var outputPathLower = outputPath.toLowerCase();
+    var extensionLower = extension.toLowerCase();
+
+    // Keep the path untouched when the expected extension is already present.
+    if (outputPathLower.slice(-extensionLower.length) === extensionLower) {
+        return outputPath;
+    }
+
+    // Append the real extension so dots inside the sequence name stay in the base filename.
+    return outputPath + extension;
+}
+
+/**
  * Execute the export via Adobe Media Encoder or directly in Premiere
  * @param {string} outputPath - Full output path (without extension)
  * @param {string} presetPath - Path to the preset file
@@ -1027,14 +1050,9 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     debugLog('Use In/Out: ' + useInOut, 'info');
     debugLog('Premiere Direct: ' + premiereDirect, 'info');
 
-    // For direct Premiere export, we need to add the file extension
-    // Detect extension from preset name (since Premiere doesn't auto-detect from .epr)
-    var finalOutputPath = outputPath;
-    if (premiereDirect) {
-        var extension = getExtensionFromPreset(presetPath, hasVideo);
-        finalOutputPath = outputPath + extension;
-        debugLog('Detected extension from preset: ' + extension, 'info');
-    }
+    // Always send a complete filename to Adobe so dots in the base name are preserved.
+    var finalOutputPath = buildExportOutputPath(outputPath, presetPath, hasVideo);
+    debugLog('Resolved output path: ' + finalOutputPath, 'info');
 
     // Escape paths for ExtendScript
     var escapedOutputPath = finalOutputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
