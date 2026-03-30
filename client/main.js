@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.10
+ * @version 1.1.11
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.10';
+let CURRENT_VERSION = '1.1.11';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -485,11 +485,11 @@ function syncDebugPanelVisibility() {
 function getResponsivePanelLayout(width, height) {
     var squareMinWidth = 94;
     var squareMinHeight = 108;
-    var verticalMaxWidth = 96;
+    var verticalMaxWidth = 104;
     var isLandscape = height <= 90 || width >= height + 24;
 
-    // Portrait mode should switch earlier on truly narrow panels, but not on near-square ones.
-    if (width <= verticalMaxWidth && height >= width + 12) {
+    // Portrait mode should switch earlier once the panel is clearly tall and narrow.
+    if (width <= verticalMaxWidth && height >= width + 8) {
         return 'vertical';
     }
 
@@ -559,28 +559,28 @@ function getElementContentBoxSize(element, fallbackWidth, fallbackHeight) {
 }
 
 /**
- * Use fixed portrait widths to keep the vertical button predictable on narrow CEP panels.
+ * Use smaller fixed portrait widths to keep the vertical button safely inside narrow CEP panels.
  * @param {number} availableWidth - Usable content width
  * @returns {number} Fixed target width
  */
 function getFixedVerticalButtonWidth(availableWidth) {
-    if (availableWidth <= 34) {
-        return 28;
+    if (availableWidth <= 30) {
+        return 22;
     }
 
-    if (availableWidth <= 42) {
-        return 32;
+    if (availableWidth <= 36) {
+        return 26;
     }
 
-    if (availableWidth <= 50) {
-        return 36;
+    if (availableWidth <= 44) {
+        return 30;
     }
 
-    if (availableWidth <= 58) {
-        return 40;
+    if (availableWidth <= 52) {
+        return 34;
     }
 
-    return 44;
+    return 36;
 }
 
 /**
@@ -628,9 +628,9 @@ function applyResponsivePanelLayout() {
         buttonHeight = getCompactAxisSize(contentHeight, 26, 38, 28);
         iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
     } else if (nextLayout === 'vertical') {
-        // Vertical mode uses fixed portrait widths, then clamps them to the real inner content width.
-        buttonWidth = fitFixedSize(getFixedVerticalButtonWidth(contentWidth), Math.max(0, contentWidth - 2));
-        iconSize = buttonWidth <= 32 ? 16 : buttonWidth <= 40 ? 18 : 20;
+        // Vertical mode deliberately uses a smaller fixed width so CEP chrome cannot push it outside the panel.
+        buttonWidth = fitFixedSize(getFixedVerticalButtonWidth(contentWidth), Math.max(0, contentWidth - 6));
+        iconSize = buttonWidth <= 26 ? 14 : buttonWidth <= 34 ? 16 : 18;
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, contentWidth));

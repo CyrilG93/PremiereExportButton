@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.11 (2026-03-30)
+- **UI**: Vertical mode now switches earlier on narrow portrait panels instead of waiting for a larger safety margin
+- **UI**: Vertical mode now uses smaller fixed button widths and tighter portrait spacing to stay inside very narrow panels
+
 ### v1.1.10 (2026-03-30)
 - **UI**: Responsive sizing now measures the real inner content box of the panel instead of relying on the largest viewport value
 - **UI**: Vertical mode now uses fixed portrait button widths and flex shrink guards so the button stays inside very narrow panels
