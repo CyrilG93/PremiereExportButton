@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.12 (2026-03-30)
+- **UI**: Restored the portrait layout trigger and dominant-direction fallback from `1.1.6`, which was the last version where vertical mode still activated reliably
+- **UI**: Restored the full-width vertical button layout so portrait mode is visually distinct from the square mode again
+
 ### v1.1.11 (2026-03-30)
 - **UI**: Vertical mode now switches earlier on narrow portrait panels instead of waiting for a larger safety margin
 - **UI**: Vertical mode now uses smaller fixed button widths and tighter portrait spacing to stay inside very narrow panels

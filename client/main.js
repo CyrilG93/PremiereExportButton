@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.11
+ * @version 1.1.12
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.11';
+let CURRENT_VERSION = '1.1.12';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -483,13 +483,15 @@ function syncDebugPanelVisibility() {
  * @returns {string} square, horizontal, or vertical
  */
 function getResponsivePanelLayout(width, height) {
-    var squareMinWidth = 94;
-    var squareMinHeight = 108;
+    var squareMinWidth = 112;
+    var squareMinHeight = 112;
+    var squareTolerance = 36;
     var verticalMaxWidth = 104;
-    var isLandscape = height <= 90 || width >= height + 24;
+    var isNearSquare = Math.abs(width - height) <= squareTolerance;
+    var isLandscape = height <= 90 || width >= height + 20;
 
-    // Portrait mode should switch earlier once the panel is clearly tall and narrow.
-    if (width <= verticalMaxWidth && height >= width + 8) {
+    // Restore the 1.1.6 portrait trigger that actually switched on tall panels in Premiere.
+    if (width <= verticalMaxWidth || height >= width + 32) {
         return 'vertical';
     }
 
@@ -498,9 +500,14 @@ function getResponsivePanelLayout(width, height) {
         return 'horizontal';
     }
 
-    // Keep the classic square button as long as there is enough room and the panel is not truly narrow.
-    if (width >= squareMinWidth && height >= squareMinHeight) {
+    // Preserve the original square button only when the panel is actually close to square.
+    if (width >= squareMinWidth && height >= squareMinHeight && isNearSquare) {
         return 'square';
+    }
+
+    // Large portrait panels should still pick the dominant direction instead of forcing square.
+    if (width >= squareMinWidth && height >= squareMinHeight) {
+        return width > height ? 'horizontal' : 'vertical';
     }
 
     return width > height ? 'horizontal' : 'vertical';
@@ -559,31 +566,6 @@ function getElementContentBoxSize(element, fallbackWidth, fallbackHeight) {
 }
 
 /**
- * Use smaller fixed portrait widths to keep the vertical button safely inside narrow CEP panels.
- * @param {number} availableWidth - Usable content width
- * @returns {number} Fixed target width
- */
-function getFixedVerticalButtonWidth(availableWidth) {
-    if (availableWidth <= 30) {
-        return 22;
-    }
-
-    if (availableWidth <= 36) {
-        return 26;
-    }
-
-    if (availableWidth <= 44) {
-        return 30;
-    }
-
-    if (availableWidth <= 52) {
-        return 34;
-    }
-
-    return 36;
-}
-
-/**
  * Fit a target size into the real available content space without forcing overflow.
  * @param {number} targetSize - Preferred fixed size
  * @param {number} availableSize - Real available space
@@ -628,9 +610,10 @@ function applyResponsivePanelLayout() {
         buttonHeight = getCompactAxisSize(contentHeight, 26, 38, 28);
         iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
     } else if (nextLayout === 'vertical') {
-        // Vertical mode deliberately uses a smaller fixed width so CEP chrome cannot push it outside the panel.
-        buttonWidth = fitFixedSize(getFixedVerticalButtonWidth(contentWidth), Math.max(0, contentWidth - 6));
-        iconSize = buttonWidth <= 26 ? 14 : buttonWidth <= 34 ? 16 : 18;
+        // Restore the 1.1.6 full-width portrait feel, but clamp it to the measured content box.
+        buttonWidth = fitFixedSize(Math.max(44, Math.min(84, contentWidth)), contentWidth);
+        buttonHeight = Math.max(68, Math.min(132, contentHeight - 56));
+        iconSize = Math.max(18, Math.min(28, Math.min(buttonWidth, buttonHeight) - 24));
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, contentWidth));

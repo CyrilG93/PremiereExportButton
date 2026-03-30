@@ -3,7 +3,7 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.1.11
+ * @version 1.1.12
  */
 
 /* Reset and base styles */
@@ -224,12 +224,6 @@ body.layout-compact #main-container {
     gap: 4px;
 }
 
-body[data-layout="vertical"] #main-container {
-    padding-left: 2px;
-    padding-right: 2px;
-    gap: 3px;
-}
-
 body.hide-debug-log #debug-panel {
     display: none;
 }
@@ -270,25 +264,19 @@ body[data-layout="horizontal"] .controls-row {
 }
 
 body[data-layout="vertical"] .control-cluster {
-    align-items: center;
-    flex: 1 1 auto;
-    gap: 4px;
-    min-height: 0;
+    align-items: stretch;
+    gap: 6px;
 }
 
 body[data-layout="vertical"] .export-button {
-    height: auto;
-    width: var(--export-button-width);
-    max-width: calc(100% - 2px);
+    width: 100%;
     min-width: 0;
-    flex: 1 1 auto;
-    min-height: 0;
+    max-width: 100%;
+    height: var(--export-button-height);
 }
 
 body[data-layout="vertical"] .controls-row {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 3px;
+    width: 100%;
 }
 
 /* Modal Overlay */
