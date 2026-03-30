@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.4
+ * @version 1.1.5
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.4';
+let CURRENT_VERSION = '1.1.5';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -485,19 +485,30 @@ function syncDebugPanelVisibility() {
 function getResponsivePanelLayout(width, height) {
     var squareMinWidth = 112;
     var squareMinHeight = 112;
+    var squareTolerance = 36;
+    var isNearSquare = Math.abs(width - height) <= squareTolerance;
 
-    // Preserve the original square button whenever the panel still has enough room.
-    if (width >= squareMinWidth && height >= squareMinHeight) {
-        return 'square';
+    // Portrait panels should switch to the vertical button before the classic square mode.
+    if (width <= 104 || height >= width + 32) {
+        return 'vertical';
     }
 
-    // Prefer a horizontal button when the panel is clearly wider than it is tall.
-    if (width >= 72 && width > height + 4) {
+    // Very short or clearly landscape panels should use the horizontal layout.
+    if (height <= 90 || width >= height + 20) {
         return 'horizontal';
     }
 
-    // Fall back to a vertical stack for narrow or portrait panels.
-    return 'vertical';
+    // Preserve the original square button only when the panel is actually close to square.
+    if (width >= squareMinWidth && height >= squareMinHeight && isNearSquare) {
+        return 'square';
+    }
+
+    // If the panel is still large enough but not near-square, follow its dominant direction.
+    if (width >= squareMinWidth && height >= squareMinHeight) {
+        return width > height ? 'horizontal' : 'vertical';
+    }
+
+    return width > height ? 'horizontal' : 'vertical';
 }
 
 /**
@@ -520,9 +531,9 @@ function applyResponsivePanelLayout() {
         iconSize = Math.max(16, Math.min(26, buttonHeight - 12));
     } else if (nextLayout === 'vertical') {
         // Make the vertical button visibly taller than wide so the mode is obvious and space-efficient.
-        buttonWidth = Math.max(42, Math.min(58, panelWidth - 14));
-        buttonHeight = Math.max(60, Math.min(88, panelHeight - 28));
-        iconSize = Math.max(18, Math.min(28, buttonWidth - 18));
+        buttonWidth = Math.max(36, Math.min(48, panelWidth - 22));
+        buttonHeight = Math.max(68, Math.min(104, panelHeight - 40));
+        iconSize = Math.max(16, Math.min(24, buttonWidth - 16));
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, panelWidth - 24));

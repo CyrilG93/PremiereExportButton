@@ -3,7 +3,7 @@
  * Handles export to Adobe Media Encoder
  *
  * @author CyrilG93
- * @version 1.1.4
+ * @version 1.1.5
  */
 
 /**

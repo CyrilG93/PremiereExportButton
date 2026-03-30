@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.5 (2026-03-30)
+- **UI**: Vertical mode now has priority on clearly portrait panel shapes instead of falling back to square too often
+- **UI**: The vertical button is narrower and taller so the portrait layout is visually obvious
+
 ### v1.1.4 (2026-03-30)
 - **UI**: The horizontal compact button now shrinks more with panel height to avoid overflowing the panel
 - **UI**: Vertical mode now kicks in earlier on narrow panels and uses a taller button shape
