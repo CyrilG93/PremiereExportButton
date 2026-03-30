@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.8
+ * @version 1.1.9
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.8';
+let CURRENT_VERSION = '1.1.9';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -485,14 +485,11 @@ function syncDebugPanelVisibility() {
 function getResponsivePanelLayout(width, height) {
     var squareMinWidth = 94;
     var squareMinHeight = 108;
-    var squareTolerance = 68;
-    var isNearSquare = Math.abs(width - height) <= squareTolerance;
-    var isVeryNarrow = width <= 78;
-    var isTallPortrait = width <= 92 && height >= width + 96;
+    var verticalMaxWidth = 90;
     var isLandscape = height <= 90 || width >= height + 24;
 
-    // Very narrow portrait panels need the vertical layout.
-    if (isVeryNarrow || isTallPortrait) {
+    // Portrait mode should be reserved for truly narrow panels.
+    if (width <= verticalMaxWidth && height > width) {
         return 'vertical';
     }
 
@@ -501,17 +498,24 @@ function getResponsivePanelLayout(width, height) {
         return 'horizontal';
     }
 
-    // Preserve the original square button when there is enough space and the panel is not strongly directional.
-    if (width >= squareMinWidth && height >= squareMinHeight && isNearSquare) {
-        return 'square';
-    }
-
-    // Medium portrait panels should still favor the square button until they become truly narrow.
+    // Keep the classic square button as long as there is enough room and the panel is not truly narrow.
     if (width >= squareMinWidth && height >= squareMinHeight) {
         return 'square';
     }
 
     return width > height ? 'horizontal' : 'vertical';
+}
+
+/**
+ * Clamp the compact button size on its constrained axis.
+ * @param {number} availableSpace - Current panel size on the constrained axis
+ * @param {number} minSize - Minimum compact size
+ * @param {number} maxSize - Maximum compact size
+ * @param {number} reservedSpace - Space reserved for panel chrome and companion controls
+ * @returns {number} Clamped compact size
+ */
+function getCompactAxisSize(availableSpace, minSize, maxSize, reservedSpace) {
+    return Math.max(minSize, Math.min(maxSize, availableSpace - reservedSpace));
 }
 
 /**
@@ -523,19 +527,19 @@ function applyResponsivePanelLayout() {
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
     var expandedMinWidth = 112;
     var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 112 : 250;
-    var isCompact = panelWidth < expandedMinWidth || panelHeight < expandedMinHeight || nextLayout === 'horizontal' || (nextLayout === 'vertical' && panelWidth < 104);
+    var isCompact = nextLayout !== 'square' || panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
     var buttonWidth = 64;
     var buttonHeight = 64;
     var iconSize = 32;
 
     if (nextLayout === 'horizontal') {
-        // Shrink the button height aggressively in short panels so it stays inside the viewport.
-        buttonHeight = Math.max(26, Math.min(38, panelHeight - 28));
-        iconSize = Math.max(16, Math.min(26, buttonHeight - 12));
+        // Horizontal mode constrains the short axis and lets flex fill the remaining width.
+        buttonHeight = getCompactAxisSize(panelHeight, 26, 38, 28);
+        iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
     } else if (nextLayout === 'vertical') {
-        // Mirror the horizontal mode: keep flex for the long axis and drive only the narrow axis from the panel size.
-        buttonWidth = Math.max(34, Math.min(52, panelWidth - 20));
-        iconSize = Math.max(16, Math.min(26, buttonWidth - 12));
+        // Vertical mode mirrors horizontal: constrain the width and let flex fill the remaining height.
+        buttonWidth = getCompactAxisSize(panelWidth, 34, 52, 20);
+        iconSize = getCompactAxisSize(buttonWidth, 16, 26, 12);
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, panelWidth - 24));
