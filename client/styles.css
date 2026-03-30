@@ -3,7 +3,7 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.1.9
+ * @version 1.1.10
  */
 
 /* Reset and base styles */
@@ -40,6 +40,7 @@ body {
     padding: 6px;
     gap: 6px;
     width: 100%;
+    min-width: 0;
     min-height: 100%;
 }
 
@@ -51,6 +52,7 @@ body {
     justify-content: flex-start;
     gap: 8px;
     width: 100%;
+    min-width: 0;
     flex-shrink: 0;
 }
 
@@ -101,6 +103,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    min-width: 0;
+    max-width: 100%;
     flex-shrink: 0;
 }
 

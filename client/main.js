@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.9
+ * @version 1.1.10
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.9';
+let CURRENT_VERSION = '1.1.10';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -485,11 +485,11 @@ function syncDebugPanelVisibility() {
 function getResponsivePanelLayout(width, height) {
     var squareMinWidth = 94;
     var squareMinHeight = 108;
-    var verticalMaxWidth = 90;
+    var verticalMaxWidth = 96;
     var isLandscape = height <= 90 || width >= height + 24;
 
-    // Portrait mode should be reserved for truly narrow panels.
-    if (width <= verticalMaxWidth && height > width) {
+    // Portrait mode should switch earlier on truly narrow panels, but not on near-square ones.
+    if (width <= verticalMaxWidth && height >= width + 12) {
         return 'vertical';
     }
 
@@ -519,37 +519,126 @@ function getCompactAxisSize(availableSpace, minSize, maxSize, reservedSpace) {
 }
 
 /**
+ * Keep CEP viewport measurements on the visible side when clientWidth and innerWidth disagree.
+ * @param {number} clientSize - documentElement client size
+ * @param {number} windowSize - window inner size
+ * @returns {number} Smallest non-zero size
+ */
+function getSafeViewportDimension(clientSize, windowSize) {
+    if (clientSize > 0 && windowSize > 0) {
+        return Math.min(clientSize, windowSize);
+    }
+
+    return clientSize > 0 ? clientSize : windowSize;
+}
+
+/**
+ * Measure the usable content box of an element without its padding.
+ * @param {HTMLElement} element - Element to measure
+ * @param {number} fallbackWidth - Width fallback
+ * @param {number} fallbackHeight - Height fallback
+ * @returns {{width:number,height:number}} Content box size
+ */
+function getElementContentBoxSize(element, fallbackWidth, fallbackHeight) {
+    if (!element) {
+        return {
+            width: fallbackWidth,
+            height: fallbackHeight
+        };
+    }
+
+    var computedStyle = window.getComputedStyle(element);
+    var horizontalPadding = (parseFloat(computedStyle.paddingLeft) || 0) + (parseFloat(computedStyle.paddingRight) || 0);
+    var verticalPadding = (parseFloat(computedStyle.paddingTop) || 0) + (parseFloat(computedStyle.paddingBottom) || 0);
+
+    // CEP reports client sizes with padding included, so remove it to get the real button area.
+    return {
+        width: Math.max(0, element.clientWidth - horizontalPadding),
+        height: Math.max(0, element.clientHeight - verticalPadding)
+    };
+}
+
+/**
+ * Use fixed portrait widths to keep the vertical button predictable on narrow CEP panels.
+ * @param {number} availableWidth - Usable content width
+ * @returns {number} Fixed target width
+ */
+function getFixedVerticalButtonWidth(availableWidth) {
+    if (availableWidth <= 34) {
+        return 28;
+    }
+
+    if (availableWidth <= 42) {
+        return 32;
+    }
+
+    if (availableWidth <= 50) {
+        return 36;
+    }
+
+    if (availableWidth <= 58) {
+        return 40;
+    }
+
+    return 44;
+}
+
+/**
+ * Fit a target size into the real available content space without forcing overflow.
+ * @param {number} targetSize - Preferred fixed size
+ * @param {number} availableSize - Real available space
+ * @returns {number} Safe size
+ */
+function fitFixedSize(targetSize, availableSize) {
+    if (availableSize <= 0) {
+        return targetSize;
+    }
+
+    return Math.min(targetSize, availableSize);
+}
+
+/**
  * Apply the responsive layout classes to the panel.
  */
 function applyResponsivePanelLayout() {
-    var panelWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-    var panelHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+    var panelWidth = getSafeViewportDimension(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    var panelHeight = getSafeViewportDimension(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
     var expandedMinWidth = 112;
     var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 112 : 250;
     var isCompact = nextLayout !== 'square' || panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
+    var mainContainer = document.getElementById('main-container');
+    var contentBoxSize;
+    var contentWidth;
+    var contentHeight;
     var buttonWidth = 64;
     var buttonHeight = 64;
     var iconSize = 32;
 
+    // Apply the layout classes first so compact padding is reflected in the measured content box.
+    document.body.setAttribute('data-layout', nextLayout);
+    document.body.classList.toggle('layout-compact', isCompact);
+
+    contentBoxSize = getElementContentBoxSize(mainContainer, panelWidth, panelHeight);
+    contentWidth = contentBoxSize.width;
+    contentHeight = contentBoxSize.height;
+
     if (nextLayout === 'horizontal') {
         // Horizontal mode constrains the short axis and lets flex fill the remaining width.
-        buttonHeight = getCompactAxisSize(panelHeight, 26, 38, 28);
+        buttonHeight = getCompactAxisSize(contentHeight, 26, 38, 28);
         iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
     } else if (nextLayout === 'vertical') {
-        // Vertical mode mirrors horizontal: constrain the width and let flex fill the remaining height.
-        buttonWidth = getCompactAxisSize(panelWidth, 34, 52, 20);
-        iconSize = getCompactAxisSize(buttonWidth, 16, 26, 12);
+        // Vertical mode uses fixed portrait widths, then clamps them to the real inner content width.
+        buttonWidth = fitFixedSize(getFixedVerticalButtonWidth(contentWidth), Math.max(0, contentWidth - 2));
+        iconSize = buttonWidth <= 32 ? 16 : buttonWidth <= 40 ? 18 : 20;
     } else {
         // Keep the classic square look when the panel still has enough room.
-        buttonWidth = Math.max(52, Math.min(64, panelWidth - 24));
+        buttonWidth = Math.max(52, Math.min(64, contentWidth));
         buttonHeight = buttonWidth;
         iconSize = Math.max(22, Math.min(32, buttonWidth - 24));
     }
 
-    // Store the active layout on the body so CSS can react without inline styles.
-    document.body.setAttribute('data-layout', nextLayout);
-    document.body.classList.toggle('layout-compact', isCompact);
+    // Store the final sizing values as CSS variables for the responsive layout rules.
     document.body.style.setProperty('--export-button-width', buttonWidth + 'px');
     document.body.style.setProperty('--export-button-height', buttonHeight + 'px');
     document.body.style.setProperty('--export-icon-size', iconSize + 'px');
