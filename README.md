@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.8 (2026-03-30)
+- **UI**: Vertical mode now mirrors the horizontal compact sizing logic, but on the width axis
+- **UI**: Vertical fallback now waits for a narrower portrait panel before replacing the square button
+
 ### v1.1.7 (2026-03-30)
 - **UI**: Vertical mode now waits for a truly narrow portrait panel instead of replacing the square layout too early
 - **UI**: The portrait button width is now capped with a safe margin so it fills the panel better without clipping

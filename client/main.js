@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.7
+ * @version 1.1.8
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.7';
+let CURRENT_VERSION = '1.1.8';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -483,13 +483,13 @@ function syncDebugPanelVisibility() {
  * @returns {string} square, horizontal, or vertical
  */
 function getResponsivePanelLayout(width, height) {
-    var squareMinWidth = 104;
-    var squareMinHeight = 104;
-    var squareTolerance = 56;
+    var squareMinWidth = 94;
+    var squareMinHeight = 108;
+    var squareTolerance = 68;
     var isNearSquare = Math.abs(width - height) <= squareTolerance;
-    var isVeryNarrow = width <= 88;
-    var isTallPortrait = width <= 108 && height >= width + 64;
-    var isLandscape = height <= 90 || width >= height + 20;
+    var isVeryNarrow = width <= 78;
+    var isTallPortrait = width <= 92 && height >= width + 96;
+    var isLandscape = height <= 90 || width >= height + 24;
 
     // Very narrow portrait panels need the vertical layout.
     if (isVeryNarrow || isTallPortrait) {
@@ -533,10 +533,9 @@ function applyResponsivePanelLayout() {
         buttonHeight = Math.max(26, Math.min(38, panelHeight - 28));
         iconSize = Math.max(16, Math.min(26, buttonHeight - 12));
     } else if (nextLayout === 'vertical') {
-        // Fill the portrait panel width with a small safety margin to avoid clipping under panel chrome.
-        buttonWidth = Math.max(40, Math.min(82, panelWidth - 12));
-        buttonHeight = Math.max(68, Math.min(132, panelHeight - 56));
-        iconSize = Math.max(18, Math.min(28, Math.min(buttonWidth, buttonHeight) - 24));
+        // Mirror the horizontal mode: keep flex for the long axis and drive only the narrow axis from the panel size.
+        buttonWidth = Math.max(34, Math.min(52, panelWidth - 20));
+        iconSize = Math.max(16, Math.min(26, buttonWidth - 12));
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, panelWidth - 24));
@@ -952,7 +951,7 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
  * @param {number} version - Version number
  * @param {string} sequenceName - Name of the sequence
  * @returns {string} Parsed suffix
- * 
+ *
  * Supported tokens:
  *   {V}   = version without padding (1, 2, 10, 100...)
  *   {VV}  = version with 2 digits (01, 02, 10, 100...)
