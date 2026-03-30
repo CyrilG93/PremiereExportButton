@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.3
+ * @version 1.1.4
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.3';
+let CURRENT_VERSION = '1.1.4';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -483,8 +483,8 @@ function syncDebugPanelVisibility() {
  * @returns {string} square, horizontal, or vertical
  */
 function getResponsivePanelLayout(width, height) {
-    var squareMinWidth = 96;
-    var squareMinHeight = 104;
+    var squareMinWidth = 112;
+    var squareMinHeight = 112;
 
     // Preserve the original square button whenever the panel still has enough room.
     if (width >= squareMinWidth && height >= squareMinHeight) {
@@ -507,13 +507,35 @@ function applyResponsivePanelLayout() {
     var panelWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
     var panelHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
-    var expandedMinWidth = 96;
-    var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 104 : 250;
+    var expandedMinWidth = 112;
+    var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 112 : 250;
     var isCompact = panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
+    var buttonWidth = 64;
+    var buttonHeight = 64;
+    var iconSize = 32;
+
+    if (nextLayout === 'horizontal') {
+        // Shrink the button height aggressively in short panels so it stays inside the viewport.
+        buttonHeight = Math.max(26, Math.min(38, panelHeight - 28));
+        iconSize = Math.max(16, Math.min(26, buttonHeight - 12));
+    } else if (nextLayout === 'vertical') {
+        // Make the vertical button visibly taller than wide so the mode is obvious and space-efficient.
+        buttonWidth = Math.max(42, Math.min(58, panelWidth - 14));
+        buttonHeight = Math.max(60, Math.min(88, panelHeight - 28));
+        iconSize = Math.max(18, Math.min(28, buttonWidth - 18));
+    } else {
+        // Keep the classic square look when the panel still has enough room.
+        buttonWidth = Math.max(52, Math.min(64, panelWidth - 24));
+        buttonHeight = buttonWidth;
+        iconSize = Math.max(22, Math.min(32, buttonWidth - 24));
+    }
 
     // Store the active layout on the body so CSS can react without inline styles.
     document.body.setAttribute('data-layout', nextLayout);
     document.body.classList.toggle('layout-compact', isCompact);
+    document.body.style.setProperty('--export-button-width', buttonWidth + 'px');
+    document.body.style.setProperty('--export-button-height', buttonHeight + 'px');
+    document.body.style.setProperty('--export-icon-size', iconSize + 'px');
 }
 
 /**

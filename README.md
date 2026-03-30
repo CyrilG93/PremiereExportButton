@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.4 (2026-03-30)
+- **UI**: The horizontal compact button now shrinks more with panel height to avoid overflowing the panel
+- **UI**: Vertical mode now kicks in earlier on narrow panels and uses a taller button shape
+
 ### v1.1.3 (2026-03-30)
 - **UI**: The panel now switches between square, horizontal, and vertical control layouts depending on the available space
 - **UI**: Settings and debug log auto-hide in compact panel sizes so the export button and checkbox remain accessible
