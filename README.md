@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.13 (2026-03-30)
+- **UI**: Vertical mode now sizes the button from the real panel width with a small fixed gutter instead of keeping a near-square width
+- **UI**: The portrait export button can now grow with flex to fill the remaining panel height instead of staying locked to a short fixed height
+
 ### v1.1.12 (2026-03-30)
 - **UI**: Restored the portrait layout trigger and dominant-direction fallback from `1.1.6`, which was the last version where vertical mode still activated reliably
 - **UI**: Restored the full-width vertical button layout so portrait mode is visually distinct from the square mode again

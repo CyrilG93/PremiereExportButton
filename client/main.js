@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.12
+ * @version 1.1.13
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.12';
+let CURRENT_VERSION = '1.1.13';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -610,10 +610,10 @@ function applyResponsivePanelLayout() {
         buttonHeight = getCompactAxisSize(contentHeight, 26, 38, 28);
         iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
     } else if (nextLayout === 'vertical') {
-        // Restore the 1.1.6 full-width portrait feel, but clamp it to the measured content box.
-        buttonWidth = fitFixedSize(Math.max(44, Math.min(84, contentWidth)), contentWidth);
-        buttonHeight = Math.max(68, Math.min(132, contentHeight - 56));
-        iconSize = Math.max(18, Math.min(28, Math.min(buttonWidth, buttonHeight) - 24));
+        // In portrait mode, keep a tiny gutter and let flex grow the button vertically.
+        buttonWidth = fitFixedSize(Math.max(24, contentWidth - 6), Math.max(0, contentWidth - 4));
+        buttonHeight = 72;
+        iconSize = Math.max(16, Math.min(26, buttonWidth - 18));
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, contentWidth));
