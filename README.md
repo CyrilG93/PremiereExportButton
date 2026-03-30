@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.15 (2026-03-30)
+- **UI**: Vertical mode now removes horizontal container padding so the button centers on the real available panel width
+- **UI**: Portrait controls now center with auto margins instead of stretching a full-width checkbox row that could offset the button visually
+
 ### v1.1.14 (2026-03-30)
 - **UI**: Vertical mode can now shrink down to the same compact minimum size range used by the horizontal button height
 - **UI**: Portrait icon sizing now follows the same compact sizing helper as the horizontal layout for more consistent small-panel behavior
