@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.16 (2026-03-30)
+- **UI**: Vertical mode width is responsive again instead of being capped to the `26..38px` compact range too early
+- **UI**: Portrait mode still keeps the same `26px` minimum as the horizontal compact height, but now expands with the available panel width
+
 ### v1.1.15 (2026-03-30)
 - **UI**: Vertical mode now removes horizontal container padding so the button centers on the real available panel width
 - **UI**: Portrait controls now center with auto margins instead of stretching a full-width checkbox row that could offset the button visually

@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.15
+ * @version 1.1.16
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.15';
+let CURRENT_VERSION = '1.1.16';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -610,8 +610,8 @@ function applyResponsivePanelLayout() {
         buttonHeight = getCompactAxisSize(contentHeight, 26, 38, 28);
         iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
     } else if (nextLayout === 'vertical') {
-        // Mirror the compact horizontal minimum width so portrait mode can shrink further on narrow panels.
-        buttonWidth = fitFixedSize(getCompactAxisSize(contentWidth, 26, 38, 28), Math.max(0, contentWidth - 4));
+        // Keep portrait mode width-responsive, but allow it to shrink down to the same 26px minimum as horizontal height.
+        buttonWidth = fitFixedSize(Math.max(26, contentWidth - 6), Math.max(0, contentWidth - 2));
         buttonHeight = 72;
         iconSize = getCompactAxisSize(buttonWidth, 16, 26, 12);
     } else {
