@@ -198,6 +198,11 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.2.0 (2026-03-30)
+- **UI**: Added a fully responsive panel with square, horizontal, and vertical button layouts depending on the available space
+- **UI**: Compact layouts now hide secondary controls so the main export button and download checkbox stay usable in very small panels
+- **UI**: Portrait mode was refined to trigger reliably again and keep a slim vertical button usable in narrow docked panels
+
 ### v1.1.17 (2026-03-30)
 - **UI**: Vertical mode now keeps the slim `26..38px` portrait width again instead of expanding across the panel
 - **UI**: Portrait controls now align to the left edge of the usable panel area so the narrow button no longer leaves a fake empty margin on the left

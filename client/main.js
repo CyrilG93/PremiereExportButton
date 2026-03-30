@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.17
+ * @version 1.2.0
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.17';
+let CURRENT_VERSION = '1.2.0';
 
 // Storage keys
 var STORAGE_KEYS = {
