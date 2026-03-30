@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.14 (2026-03-30)
+- **UI**: Vertical mode can now shrink down to the same compact minimum size range used by the horizontal button height
+- **UI**: Portrait icon sizing now follows the same compact sizing helper as the horizontal layout for more consistent small-panel behavior
+
 ### v1.1.13 (2026-03-30)
 - **UI**: Vertical mode now sizes the button from the real panel width with a small fixed gutter instead of keeping a near-square width
 - **UI**: The portrait export button can now grow with flex to fill the remaining panel height instead of staying locked to a short fixed height
