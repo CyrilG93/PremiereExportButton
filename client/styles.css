@@ -3,7 +3,7 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.1.6
+ * @version 1.1.7
  */
 
 /* Reset and base styles */
@@ -260,15 +260,16 @@ body[data-layout="horizontal"] .controls-row {
 }
 
 body[data-layout="vertical"] .control-cluster {
-    align-items: stretch;
+    align-items: center;
     gap: 6px;
 }
 
 body[data-layout="vertical"] .export-button {
-    width: 100%;
+    width: var(--export-button-width);
     min-width: 0;
     max-width: 100%;
     height: var(--export-button-height);
+    align-self: center;
 }
 
 body[data-layout="vertical"] .controls-row {
