@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.17 (2026-03-30)
+- **UI**: Vertical mode now keeps the slim `26..38px` portrait width again instead of expanding across the panel
+- **UI**: Portrait controls now align to the left edge of the usable panel area so the narrow button no longer leaves a fake empty margin on the left
+
 ### v1.1.16 (2026-03-30)
 - **UI**: Vertical mode width is responsive again instead of being capped to the `26..38px` compact range too early
 - **UI**: Portrait mode still keeps the same `26px` minimum as the horizontal compact height, but now expands with the available panel width
