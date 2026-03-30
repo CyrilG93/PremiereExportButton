@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.2
+ * @version 1.1.3
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.2';
+let CURRENT_VERSION = '1.1.3';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -35,6 +35,7 @@ const https = require('https');
 
 // Host Locale
 var hostLocale = 'en_US'; // Default
+var panelLayoutObserver = null;
 
 var Persistence = {
     settings: {},
@@ -125,6 +126,9 @@ function init() {
     // Load saved settings
     loadSettings();
 
+    // Apply the saved debug log preference before layout rules kick in.
+    syncDebugPanelVisibility();
+
     // Check Host Locale
     csInterface.evalScript('$.locale', function (result) {
         if (result) hostLocale = result;
@@ -136,22 +140,11 @@ function init() {
     const badge = document.getElementById('version-badge');
     if (badge) badge.innerText = 'v' + CURRENT_VERSION;
 
-    // Apply Debug Log Visibility
-    // Default to true (hidden) if not set, or if explicitly true
-    var hideLogVal = Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG);
-    var shouldHide = (hideLogVal !== 'false'); // Hidden by default unless 'false'
-
-    if (shouldHide) {
-        const debugPanel = document.getElementById('debug-panel');
-        if (debugPanel) debugPanel.style.display = 'none';
-    }
-
-    // Set checkbox state to match actual state used (important for first run)
-    const hideLogCheckbox = document.getElementById('hide-log');
-    if (hideLogCheckbox) hideLogCheckbox.checked = shouldHide;
-
     // Setup event listeners
     setupEventListeners();
+
+    // Keep the panel usable even when Premiere resizes it aggressively.
+    setupResponsivePanelLayout();
 
     // Set initial status
     // Set initial status
@@ -385,8 +378,8 @@ function saveSettings() {
     Persistence.set(STORAGE_KEYS.PREMIERE_DIRECT, premiereDirect);
     Persistence.set(STORAGE_KEYS.HIDE_DEBUG_LOG, hideLog);
 
-    // Apply hide/show log immediately
-    document.getElementById('debug-panel').style.display = hideLog ? 'none' : 'block';
+    // Re-apply the debug log preference without fighting the responsive layout CSS.
+    syncDebugPanelVisibility();
 
     setStatus('Settings saved', 'success');
     closeSettingsModal();
@@ -465,6 +458,87 @@ function setupEventListeners() {
         document.body.removeChild(textarea);
     });
 
+}
+
+/**
+ * Apply the saved debug log preference through a body class.
+ */
+function syncDebugPanelVisibility() {
+    var hideLogVal = Persistence.get(STORAGE_KEYS.HIDE_DEBUG_LOG);
+    var shouldHide = (hideLogVal !== 'false');
+
+    // Keep preference-driven log visibility separate from responsive compact mode.
+    document.body.classList.toggle('hide-debug-log', shouldHide);
+
+    // Re-evaluate compact mode because the visible height requirement changes with the log.
+    if (document.body.hasAttribute('data-layout')) {
+        applyResponsivePanelLayout();
+    }
+}
+
+/**
+ * Resolve which panel layout fits the current dimensions best.
+ * @param {number} width - Available panel width
+ * @param {number} height - Available panel height
+ * @returns {string} square, horizontal, or vertical
+ */
+function getResponsivePanelLayout(width, height) {
+    var squareMinWidth = 96;
+    var squareMinHeight = 104;
+
+    // Preserve the original square button whenever the panel still has enough room.
+    if (width >= squareMinWidth && height >= squareMinHeight) {
+        return 'square';
+    }
+
+    // Prefer a horizontal button when the panel is clearly wider than it is tall.
+    if (width >= 72 && width > height + 4) {
+        return 'horizontal';
+    }
+
+    // Fall back to a vertical stack for narrow or portrait panels.
+    return 'vertical';
+}
+
+/**
+ * Apply the responsive layout classes to the panel.
+ */
+function applyResponsivePanelLayout() {
+    var panelWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+    var panelHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+    var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
+    var expandedMinWidth = 96;
+    var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 104 : 250;
+    var isCompact = panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
+
+    // Store the active layout on the body so CSS can react without inline styles.
+    document.body.setAttribute('data-layout', nextLayout);
+    document.body.classList.toggle('layout-compact', isCompact);
+}
+
+/**
+ * Watch the CEP panel size and keep the main controls usable.
+ */
+function setupResponsivePanelLayout() {
+    // Reuse the same layout calculation for both resize mechanisms.
+    var handleResize = function () {
+        applyResponsivePanelLayout();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    if (typeof ResizeObserver === 'function') {
+        if (panelLayoutObserver) {
+            panelLayoutObserver.disconnect();
+        }
+
+        panelLayoutObserver = new ResizeObserver(function () {
+            applyResponsivePanelLayout();
+        });
+        panelLayoutObserver.observe(document.documentElement);
+    }
+
+    handleResize();
 }
 
 /**

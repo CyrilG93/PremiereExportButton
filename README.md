@@ -16,6 +16,7 @@ A powerful CEP extension for quick, customizable exports via Adobe Media Encoder
 - **Folder depth** - Choose how far up from the project to create the export folder
 - **Fixed folder** - Export to a specific folder when needed
 - **Dual presets** - Separate presets for Video+Audio and Audio-only sequences
+- **Adaptive panel** - Button and checkbox stay usable when the panel is heavily resized
 - **Cross-platform** - Works on both macOS and Windows
 
 ## Interface
@@ -196,6 +197,11 @@ The built-in debug panel shows detailed logs. Common issues:
 **CyrilG93** - [@CyrilG93](https://github.com/CyrilG93)
 
 ## Changelog
+
+### v1.1.3 (2026-03-30)
+- **UI**: The panel now switches between square, horizontal, and vertical control layouts depending on the available space
+- **UI**: Settings and debug log auto-hide in compact panel sizes so the export button and checkbox remain accessible
+- **UI**: Reduced the minimum panel size to allow a much smaller docked panel
 
 ### v1.1.2 (2026-03-26)
 - **Fix**: Export filenames now keep dots inside the sequence name by always sending Adobe a full filename with the real extension
