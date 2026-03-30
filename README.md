@@ -198,6 +198,10 @@ The built-in debug panel shows detailed logs. Common issues:
 
 ## Changelog
 
+### v1.1.6 (2026-03-30)
+- **UI**: Vertical layout now behaves like a compact fallback mode and hides secondary controls such as the settings button
+- **UI**: The vertical export button now expands to the available panel width instead of staying artificially narrow
+
 ### v1.1.5 (2026-03-30)
 - **UI**: Vertical mode now has priority on clearly portrait panel shapes instead of falling back to square too often
 - **UI**: The vertical button is narrower and taller so the portrait layout is visually obvious

@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.1.5
+ * @version 1.1.6
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.1.5';
+let CURRENT_VERSION = '1.1.6';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -520,7 +520,7 @@ function applyResponsivePanelLayout() {
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
     var expandedMinWidth = 112;
     var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 112 : 250;
-    var isCompact = panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
+    var isCompact = nextLayout !== 'square' || panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
     var buttonWidth = 64;
     var buttonHeight = 64;
     var iconSize = 32;
@@ -530,10 +530,10 @@ function applyResponsivePanelLayout() {
         buttonHeight = Math.max(26, Math.min(38, panelHeight - 28));
         iconSize = Math.max(16, Math.min(26, buttonHeight - 12));
     } else if (nextLayout === 'vertical') {
-        // Make the vertical button visibly taller than wide so the mode is obvious and space-efficient.
-        buttonWidth = Math.max(36, Math.min(48, panelWidth - 22));
-        buttonHeight = Math.max(68, Math.min(104, panelHeight - 40));
-        iconSize = Math.max(16, Math.min(24, buttonWidth - 16));
+        // Use nearly the full panel width in portrait mode so the layout actually feels responsive.
+        buttonWidth = Math.max(44, panelWidth - 8);
+        buttonHeight = Math.max(68, Math.min(132, panelHeight - 56));
+        iconSize = Math.max(18, Math.min(28, Math.min(buttonWidth, buttonHeight) - 24));
     } else {
         // Keep the classic square look when the panel still has enough room.
         buttonWidth = Math.max(52, Math.min(64, panelWidth - 24));
