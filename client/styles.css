@@ -3,8 +3,29 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.2.0
+ * @version 1.2.1
  */
+
+:root {
+    --bg-primary: #232323;
+    --bg-surface: #2a2a2a;
+    --bg-soft: #333333;
+    --bg-soft-rgb: 51, 51, 51;
+    --bg-input: #1a1a1a;
+    --bg-hover: #555555;
+    --bg-hover-rgb: 85, 85, 85;
+    --text-primary: #e0e0e0;
+    --text-muted: #888888;
+    --accent: #4a90d9;
+    --accent-rgb: 74, 144, 217;
+    --accent-hover: #5a9fe9;
+    --accent-active: #357abd;
+    --border: #444444;
+    --border-strong: #333333;
+    --button-primary-text: #ffffff;
+    --ui-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
 
 /* Reset and base styles */
 * {
@@ -20,9 +41,9 @@ body {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: #232323;
-    color: #e0e0e0;
+    font-family: var(--ui-font-family);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-size: 12px;
     overflow: hidden;
     user-select: none;
@@ -61,7 +82,7 @@ body {
     width: var(--export-button-width);
     max-width: 100%;
     height: var(--export-button-height);
-    background: linear-gradient(180deg, #4a90d9 0%, #357abd 100%);
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-active) 100%);
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -74,19 +95,19 @@ body {
 }
 
 .export-button:hover {
-    background: linear-gradient(180deg, #5a9fe9 0%, #4589cd 100%);
+    background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(74, 144, 217, 0.4);
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);
 }
 
 .export-button:active {
-    background: linear-gradient(180deg, #3a80c9 0%, #2569ad 100%);
+    background: linear-gradient(180deg, var(--accent-active) 0%, var(--accent) 100%);
     transform: translateY(1px);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .export-button:disabled {
-    background: #555;
+    background: var(--bg-hover);
     cursor: not-allowed;
     box-shadow: none;
 }
@@ -94,7 +115,7 @@ body {
 .export-icon {
     width: var(--export-icon-size);
     height: var(--export-icon-size);
-    fill: white;
+    fill: var(--button-primary-text);
 }
 
 /* Controls Row */
@@ -130,8 +151,8 @@ body {
 .checkmark {
     width: 16px;
     height: 16px;
-    background-color: #333;
-    border: 2px solid #555;
+    background-color: var(--bg-soft);
+    border: 2px solid var(--border);
     border-radius: 3px;
     display: flex;
     align-items: center;
@@ -140,18 +161,18 @@ body {
 }
 
 .checkbox-container:hover .checkmark {
-    border-color: #4a90d9;
+    border-color: var(--accent);
 }
 
 .checkbox-container input:checked~.checkmark {
-    background-color: #4a90d9;
-    border-color: #4a90d9;
+    background-color: var(--accent);
+    border-color: var(--accent);
 }
 
 .check-icon {
     width: 10px;
     height: 10px;
-    fill: white;
+    fill: var(--button-primary-text);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -175,28 +196,28 @@ body {
 }
 
 .settings-button:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--bg-hover-rgb), 0.85);
 }
 
 .settings-button:active {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(var(--bg-soft-rgb), 0.95);
 }
 
 .settings-icon {
     width: 14px;
     height: 14px;
-    fill: #888;
+    fill: var(--text-muted);
     transition: fill 0.2s ease;
 }
 
 .settings-button:hover .settings-icon {
-    fill: #e0e0e0;
+    fill: var(--text-primary);
 }
 
 /* Status Message */
 .status {
     font-size: 9px;
-    color: #888;
+    color: var(--text-muted);
     text-align: center;
     min-height: 12px;
     max-width: 100%;
@@ -318,13 +339,13 @@ body[data-layout="vertical"] .controls-row {
 
 /* Modal Content */
 .modal-content {
-    background-color: #2a2a2a;
+    background-color: var(--bg-surface);
     border-radius: 8px;
     width: 90%;
     max-width: 400px;
     max-height: 90vh;
     overflow: auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--panel-shadow);
 }
 
 .modal-header {
@@ -332,7 +353,7 @@ body[data-layout="vertical"] .controls-row {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border);
 }
 
 .modal-header h3 {
@@ -344,7 +365,7 @@ body[data-layout="vertical"] .controls-row {
     background: none;
     border: none;
     font-size: 20px;
-    color: #888;
+    color: var(--text-muted);
     cursor: pointer;
     line-height: 1;
     padding: 0;
@@ -352,7 +373,7 @@ body[data-layout="vertical"] .controls-row {
 }
 
 .close-button:hover {
-    color: #e0e0e0;
+    color: var(--text-primary);
 }
 
 .modal-body {
@@ -367,42 +388,44 @@ body[data-layout="vertical"] .controls-row {
     display: block;
     margin-bottom: 6px;
     font-size: 11px;
-    color: #aaa;
+    color: var(--text-muted);
 }
 
-.setting-group input[type="text"] {
+.setting-group input[type="text"],
+.setting-group input[type="number"] {
     width: 100%;
     padding: 8px 10px;
-    background-color: #1a1a1a;
-    border: 1px solid #444;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
     border-radius: 4px;
-    color: #e0e0e0;
+    color: var(--text-primary);
     font-size: 11px;
     margin-bottom: 6px;
 }
 
-.setting-group input[type="text"]:focus {
+.setting-group input[type="text"]:focus,
+.setting-group input[type="number"]:focus {
     outline: none;
-    border-color: #4a90d9;
+    border-color: var(--accent);
 }
 
 .setting-group input[type="text"]::placeholder {
-    color: #666;
+    color: var(--text-muted);
 }
 
 .browse-btn {
     padding: 6px 12px;
-    background-color: #444;
+    background-color: var(--bg-soft);
     border: none;
     border-radius: 4px;
-    color: #e0e0e0;
+    color: var(--text-primary);
     font-size: 10px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 .browse-btn:hover {
-    background-color: #555;
+    background-color: var(--bg-hover);
 }
 
 .modal-footer {
@@ -410,33 +433,33 @@ body[data-layout="vertical"] .controls-row {
     justify-content: flex-end;
     margin-top: 16px;
     padding-top: 12px;
-    border-top: 1px solid #444;
+    border-top: 1px solid var(--border);
 }
 
 .save-button {
     padding: 8px 20px;
-    background: linear-gradient(180deg, #4a90d9 0%, #357abd 100%);
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-active) 100%);
     border: none;
     border-radius: 4px;
-    color: white;
+    color: var(--button-primary-text);
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .save-button:hover {
-    background: linear-gradient(180deg, #5a9fe9 0%, #4589cd 100%);
+    background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
 }
 
 .save-button:active {
-    background: linear-gradient(180deg, #3a80c9 0%, #2569ad 100%);
+    background: linear-gradient(180deg, var(--accent-active) 0%, var(--accent) 100%);
 }
 
 /* Settings Sections */
 .settings-section {
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-strong);
 }
 
 .settings-section:last-of-type {
@@ -447,7 +470,7 @@ body[data-layout="vertical"] .controls-row {
     margin: 0 0 10px 0;
     font-size: 11px;
     font-weight: 600;
-    color: #888;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -455,7 +478,7 @@ body[data-layout="vertical"] .controls-row {
 .setting-hint {
     display: block;
     font-size: 9px;
-    color: #666;
+    color: var(--text-muted);
     margin-top: 4px;
 }
 
@@ -469,7 +492,7 @@ body[data-layout="vertical"] .controls-row {
     gap: 8px;
     cursor: pointer;
     font-size: 11px;
-    color: #ccc;
+    color: var(--text-primary);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -482,9 +505,9 @@ body[data-layout="vertical"] .controls-row {
 .debug-panel {
     width: 100%;
     margin-top: 8px;
-    border: 1px solid #444;
+    border: 1px solid var(--border);
     border-radius: 4px;
-    background-color: #1a1a1a;
+    background-color: var(--bg-input);
     overflow: hidden;
 }
 
@@ -493,10 +516,10 @@ body[data-layout="vertical"] .controls-row {
     justify-content: space-between;
     align-items: center;
     padding: 4px 8px;
-    background-color: #2a2a2a;
-    border-bottom: 1px solid #444;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
     font-size: 10px;
-    color: #888;
+    color: var(--text-muted);
 }
 
 .debug-buttons {
@@ -507,15 +530,15 @@ body[data-layout="vertical"] .controls-row {
 .debug-btn {
     padding: 2px 6px;
     font-size: 9px;
-    background-color: #444;
+    background-color: var(--bg-soft);
     border: none;
     border-radius: 3px;
-    color: #ccc;
+    color: var(--text-primary);
     cursor: pointer;
 }
 
 .debug-btn:hover {
-    background-color: #555;
+    background-color: var(--bg-hover);
 }
 
 .debug-log {
@@ -525,7 +548,7 @@ body[data-layout="vertical"] .controls-row {
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
     font-size: 9px;
     line-height: 1.4;
-    color: #aaa;
+    color: var(--text-muted);
     white-space: pre-wrap;
     word-break: break-all;
 }
@@ -587,9 +610,9 @@ body[data-layout="vertical"] .controls-row {
 /* Version Badge */
 .version-badge {
     font-size: 10px;
-    color: #888;
-    background-color: #1a1a1a;
+    color: var(--text-muted);
+    background-color: var(--bg-input);
     padding: 1px 4px;
     border-radius: 3px;
-    border: 1px solid #444;
+    border: 1px solid var(--border);
 }
