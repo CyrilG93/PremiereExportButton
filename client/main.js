@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.5
+ * @version 1.2.6
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.5';
+let CURRENT_VERSION = '1.2.6';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -693,11 +693,22 @@ function getElementContentBoxSize(element, fallbackWidth, fallbackHeight) {
     var computedStyle = window.getComputedStyle(element);
     var horizontalPadding = (parseFloat(computedStyle.paddingLeft) || 0) + (parseFloat(computedStyle.paddingRight) || 0);
     var verticalPadding = (parseFloat(computedStyle.paddingTop) || 0) + (parseFloat(computedStyle.paddingBottom) || 0);
+    var rect = typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : null;
+    var measuredWidth = element.clientWidth || fallbackWidth;
+    var measuredHeight = element.clientHeight || fallbackHeight;
+
+    // CEP can over-report viewport sizes, so keep the smallest positive DOM measurement.
+    if (rect && rect.width > 0) {
+        measuredWidth = Math.min(measuredWidth, rect.width);
+    }
+    if (rect && rect.height > 0) {
+        measuredHeight = Math.min(measuredHeight, rect.height);
+    }
 
     // CEP reports client sizes with padding included, so remove it to get the real button area.
     return {
-        width: Math.max(0, element.clientWidth - horizontalPadding),
-        height: Math.max(0, element.clientHeight - verticalPadding)
+        width: Math.max(0, measuredWidth - horizontalPadding),
+        height: Math.max(0, measuredHeight - verticalPadding)
     };
 }
 
@@ -732,10 +743,12 @@ function applyResponsivePanelLayout() {
 
     if (isCompact) {
         // Compact mode stacks controls below when the checkbox would force lateral overflow.
-        var reservedWidth = compactControlsBelow ? 0 : 28;
+        var reservedWidth = compactControlsBelow ? 10 : 28;
         var reservedHeight = compactControlsBelow ? 28 : 14;
-        buttonWidth = clampResponsiveSize(contentWidth - reservedWidth, 36, Math.max(36, contentWidth));
-        buttonHeight = clampResponsiveSize(contentHeight - reservedHeight, 28, Math.max(28, contentHeight));
+        var availableButtonWidth = Math.max(24, contentWidth - reservedWidth);
+        var availableButtonHeight = Math.max(24, contentHeight - reservedHeight);
+        buttonWidth = clampResponsiveSize(availableButtonWidth, Math.min(36, availableButtonWidth), availableButtonWidth);
+        buttonHeight = clampResponsiveSize(availableButtonHeight, Math.min(28, availableButtonHeight), availableButtonHeight);
         iconSize = clampResponsiveSize(Math.min(buttonWidth, buttonHeight) * 0.48, 16, 34);
     } else {
         // Full mode appears as soon as the main controls fit, then scales the square button up.
