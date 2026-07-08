@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.6
+ * @version 1.2.7
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.6';
+let CURRENT_VERSION = '1.2.7';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -663,16 +663,20 @@ function clampResponsiveSize(value, minSize, maxSize) {
 
 /**
  * Keep CEP viewport measurements on the visible side when clientWidth and innerWidth disagree.
- * @param {number} clientSize - documentElement client size
- * @param {number} windowSize - window inner size
+ * @param {...number} sizes - Candidate viewport sizes
  * @returns {number} Smallest non-zero size
  */
-function getSafeViewportDimension(clientSize, windowSize) {
-    if (clientSize > 0 && windowSize > 0) {
-        return Math.min(clientSize, windowSize);
+function getSafeViewportDimension() {
+    var safeSize = 0;
+
+    for (var i = 0; i < arguments.length; i++) {
+        var size = arguments[i];
+        if (size > 0) {
+            safeSize = safeSize > 0 ? Math.min(safeSize, size) : size;
+        }
     }
 
-    return clientSize > 0 ? clientSize : windowSize;
+    return safeSize;
 }
 
 /**
@@ -716,8 +720,8 @@ function getElementContentBoxSize(element, fallbackWidth, fallbackHeight) {
  * Apply the responsive layout classes to the panel.
  */
 function applyResponsivePanelLayout() {
-    var panelWidth = getSafeViewportDimension(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    var panelHeight = getSafeViewportDimension(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    var panelWidth = getSafeViewportDimension(document.documentElement.clientWidth || 0, window.innerWidth || 0, window.outerWidth || 0);
+    var panelHeight = getSafeViewportDimension(document.documentElement.clientHeight || 0, window.innerHeight || 0, window.outerHeight || 0);
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
     var isCompact = nextLayout === 'compact';
     var hideDebugForSize = !isCompact && !document.body.classList.contains('hide-debug-log') && panelHeight < 260;
@@ -743,7 +747,7 @@ function applyResponsivePanelLayout() {
 
     if (isCompact) {
         // Compact mode stacks controls below when the checkbox would force lateral overflow.
-        var reservedWidth = compactControlsBelow ? 10 : 28;
+        var reservedWidth = compactControlsBelow ? Math.max(18, Math.round(contentWidth * 0.18)) : 28;
         var reservedHeight = compactControlsBelow ? 28 : 14;
         var availableButtonWidth = Math.max(24, contentWidth - reservedWidth);
         var availableButtonHeight = Math.max(24, contentHeight - reservedHeight);

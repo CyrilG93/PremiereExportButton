@@ -3,7 +3,7 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.2.6
+ * @version 1.2.7
  */
 
 :root {
@@ -83,7 +83,7 @@ body {
 /* Export Button - Large Square */
 .export-button {
     width: var(--export-button-width);
-    max-width: 100%;
+    max-width: calc(100vw - 12px);
     height: var(--export-button-height);
     background: linear-gradient(180deg, var(--accent) 0%, var(--accent-active) 100%);
     border: none;
