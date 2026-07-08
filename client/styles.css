@@ -3,7 +3,7 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.2.2
+ * @version 1.2.3
  */
 
 :root {
@@ -61,8 +61,11 @@ body {
     padding: 6px;
     gap: 6px;
     width: 100%;
+    height: 100%;
     min-width: 0;
     min-height: 100%;
+    max-height: 100%;
+    overflow: hidden;
 }
 
 /* Responsive Controls Cluster */
@@ -245,12 +248,11 @@ body.layout-compact #main-container {
     gap: 4px;
 }
 
-body[data-layout="vertical"] #main-container {
-    padding-left: 0;
-    padding-right: 0;
+body.hide-debug-log #debug-panel {
+    display: none;
 }
 
-body.hide-debug-log #debug-panel {
+body.layout-hide-debug-for-size #debug-panel {
     display: none;
 }
 
@@ -270,53 +272,32 @@ body.layout-compact #update-banner {
     margin-bottom: 4px;
 }
 
-body[data-layout="horizontal"] .control-cluster {
+body[data-layout="full"] .control-cluster {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+body[data-layout="compact"] .control-cluster {
     flex-direction: row;
     align-items: stretch;
+    justify-content: flex-start;
     gap: 6px;
-}
-
-body[data-layout="horizontal"] .export-button {
-    width: auto;
-    min-width: 0;
     flex: 1 1 auto;
-    height: var(--export-button-height);
-}
-
-body[data-layout="horizontal"] .controls-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-}
-
-body[data-layout="vertical"] .control-cluster {
-    align-items: flex-start;
-    flex: 1 1 auto;
-    gap: 6px;
     min-height: 0;
 }
 
-body[data-layout="vertical"] .export-button {
+body[data-layout="compact"] .export-button {
     width: var(--export-button-width);
     min-width: 0;
-    max-width: 100%;
-    min-height: var(--export-button-height);
-    height: auto;
-    margin-left: 0;
-    margin-right: 0;
-    align-self: flex-start;
-    flex: 1 1 auto;
+    height: var(--export-button-height);
+    flex: 0 0 auto;
 }
 
-body[data-layout="vertical"] .controls-row {
-    width: var(--export-button-width);
-    max-width: 100%;
-    justify-content: center;
+body[data-layout="compact"] .controls-row {
+    flex-direction: column;
+    align-items: stretch;
     gap: 4px;
-    flex-shrink: 0;
-    margin-left: 0;
-    margin-right: 0;
-    align-self: flex-start;
 }
 
 /* Modal Overlay */

@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.2
+ * @version 1.2.3
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.2';
+let CURRENT_VERSION = '1.2.3';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -633,49 +633,25 @@ function syncDebugPanelVisibility() {
  * Resolve which panel layout fits the current dimensions best.
  * @param {number} width - Available panel width
  * @param {number} height - Available panel height
- * @returns {string} square, horizontal, or vertical
+ * @returns {string} full or compact
  */
 function getResponsivePanelLayout(width, height) {
-    var squareMinWidth = 112;
-    var squareMinHeight = 112;
-    var squareTolerance = 36;
-    var verticalMaxWidth = 104;
-    var isNearSquare = Math.abs(width - height) <= squareTolerance;
-    var isLandscape = height <= 90 || width >= height + 20;
+    var fullMinWidth = 112;
+    var fullMinHeight = 136;
 
-    // Restore the 1.1.6 portrait trigger that actually switched on tall panels in Premiere.
-    if (width <= verticalMaxWidth || height >= width + 32) {
-        return 'vertical';
-    }
-
-    // Very short or clearly landscape panels should use the horizontal layout.
-    if (isLandscape) {
-        return 'horizontal';
-    }
-
-    // Preserve the original square button only when the panel is actually close to square.
-    if (width >= squareMinWidth && height >= squareMinHeight && isNearSquare) {
-        return 'square';
-    }
-
-    // Large portrait panels should still pick the dominant direction instead of forcing square.
-    if (width >= squareMinWidth && height >= squareMinHeight) {
-        return width > height ? 'horizontal' : 'vertical';
-    }
-
-    return width > height ? 'horizontal' : 'vertical';
+    // Full mode should depend on usable space, not on a near-square panel ratio.
+    return width >= fullMinWidth && height >= fullMinHeight ? 'full' : 'compact';
 }
 
 /**
- * Clamp the compact button size on its constrained axis.
- * @param {number} availableSpace - Current panel size on the constrained axis
- * @param {number} minSize - Minimum compact size
- * @param {number} maxSize - Maximum compact size
- * @param {number} reservedSpace - Space reserved for panel chrome and companion controls
+ * Clamp a responsive size into a safe visual range.
+ * @param {number} value - Preferred size
+ * @param {number} minSize - Minimum size
+ * @param {number} maxSize - Maximum size
  * @returns {number} Clamped compact size
  */
-function getCompactAxisSize(availableSpace, minSize, maxSize, reservedSpace) {
-    return Math.max(minSize, Math.min(maxSize, availableSpace - reservedSpace));
+function clampResponsiveSize(value, minSize, maxSize) {
+    return Math.max(minSize, Math.min(maxSize, value));
 }
 
 /**
@@ -719,29 +695,14 @@ function getElementContentBoxSize(element, fallbackWidth, fallbackHeight) {
 }
 
 /**
- * Fit a target size into the real available content space without forcing overflow.
- * @param {number} targetSize - Preferred fixed size
- * @param {number} availableSize - Real available space
- * @returns {number} Safe size
- */
-function fitFixedSize(targetSize, availableSize) {
-    if (availableSize <= 0) {
-        return targetSize;
-    }
-
-    return Math.min(targetSize, availableSize);
-}
-
-/**
  * Apply the responsive layout classes to the panel.
  */
 function applyResponsivePanelLayout() {
     var panelWidth = getSafeViewportDimension(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     var panelHeight = getSafeViewportDimension(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
-    var expandedMinWidth = 112;
-    var expandedMinHeight = document.body.classList.contains('hide-debug-log') ? 112 : 250;
-    var isCompact = nextLayout !== 'square' || panelWidth < expandedMinWidth || panelHeight < expandedMinHeight;
+    var isCompact = nextLayout === 'compact';
+    var hideDebugForSize = !isCompact && !document.body.classList.contains('hide-debug-log') && panelHeight < 260;
     var mainContainer = document.getElementById('main-container');
     var contentBoxSize;
     var contentWidth;
@@ -750,28 +711,27 @@ function applyResponsivePanelLayout() {
     var buttonHeight = 64;
     var iconSize = 32;
 
-    // Apply the layout classes first so compact padding is reflected in the measured content box.
+    // Apply layout classes first so padding and hidden debug state are reflected in measurements.
     document.body.setAttribute('data-layout', nextLayout);
     document.body.classList.toggle('layout-compact', isCompact);
+    document.body.classList.toggle('layout-hide-debug-for-size', hideDebugForSize);
 
     contentBoxSize = getElementContentBoxSize(mainContainer, panelWidth, panelHeight);
     contentWidth = contentBoxSize.width;
     contentHeight = contentBoxSize.height;
 
-    if (nextLayout === 'horizontal') {
-        // Horizontal mode constrains the short axis and lets flex fill the remaining width.
-        buttonHeight = getCompactAxisSize(contentHeight, 26, 38, 28);
-        iconSize = getCompactAxisSize(buttonHeight, 16, 26, 12);
-    } else if (nextLayout === 'vertical') {
-        // Keep the slim portrait button, using the same compact range as horizontal height.
-        buttonWidth = fitFixedSize(getCompactAxisSize(contentWidth, 26, 38, 28), Math.max(0, contentWidth - 2));
-        buttonHeight = 72;
-        iconSize = getCompactAxisSize(buttonWidth, 16, 26, 12);
+    if (isCompact) {
+        // Compact mode uses one rectangle that grows on both axes, with the checkbox beside it.
+        buttonWidth = clampResponsiveSize(contentWidth - 28, 36, Math.max(36, contentWidth));
+        buttonHeight = clampResponsiveSize(contentHeight - 14, 28, Math.max(28, contentHeight));
+        iconSize = clampResponsiveSize(Math.min(buttonWidth, buttonHeight) * 0.48, 16, 34);
     } else {
-        // Keep the classic square look when the panel still has enough room.
-        buttonWidth = Math.max(52, Math.min(64, contentWidth));
+        // Full mode appears as soon as the main controls fit, then scales the square button up.
+        var reservedHeight = hideDebugForSize ? 44 : 180;
+        var availableSquareSize = Math.min(contentWidth, Math.max(52, contentHeight - reservedHeight));
+        buttonWidth = clampResponsiveSize(availableSquareSize, 64, 128);
         buttonHeight = buttonWidth;
-        iconSize = Math.max(22, Math.min(32, buttonWidth - 24));
+        iconSize = clampResponsiveSize(buttonWidth * 0.42, 24, 46);
     }
 
     // Store the final sizing values as CSS variables for the responsive layout rules.

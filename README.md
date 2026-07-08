@@ -16,7 +16,7 @@ A powerful CEP extension for quick, customizable exports via Adobe Media Encoder
 - **Folder depth** - Choose how far up from the project to create the export folder
 - **Fixed folder** - Export to a specific folder when needed
 - **Dual presets** - Separate presets for Video+Audio and Audio-only sequences
-- **Adaptive panel** - Button and checkbox stay usable when the panel is heavily resized
+- **Adaptive panel** - Button and checkbox resize together and switch back to the full layout as soon as there is room
 - **Premiere Theme Support** - The panel follows Premiere Pro's light and dark interface colors
 - **Cross-platform** - Works on both macOS and Windows
 
