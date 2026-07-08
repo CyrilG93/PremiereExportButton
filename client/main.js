@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.4
+ * @version 1.2.5
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.4';
+let CURRENT_VERSION = '1.2.5';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -710,6 +710,7 @@ function applyResponsivePanelLayout() {
     var nextLayout = getResponsivePanelLayout(panelWidth, panelHeight);
     var isCompact = nextLayout === 'compact';
     var hideDebugForSize = !isCompact && !document.body.classList.contains('hide-debug-log') && panelHeight < 260;
+    var compactControlsBelow = false;
     var mainContainer = document.getElementById('main-container');
     var contentBoxSize;
     var contentWidth;
@@ -726,11 +727,15 @@ function applyResponsivePanelLayout() {
     contentBoxSize = getElementContentBoxSize(mainContainer, panelWidth, panelHeight);
     contentWidth = contentBoxSize.width;
     contentHeight = contentBoxSize.height;
+    compactControlsBelow = isCompact && (contentWidth < 118 || panelHeight >= panelWidth * 1.25);
+    document.body.setAttribute('data-compact-controls', compactControlsBelow ? 'below' : 'side');
 
     if (isCompact) {
-        // Compact mode uses one rectangle that grows on both axes, with the checkbox beside it.
-        buttonWidth = clampResponsiveSize(contentWidth - 28, 36, Math.max(36, contentWidth));
-        buttonHeight = clampResponsiveSize(contentHeight - 14, 28, Math.max(28, contentHeight));
+        // Compact mode stacks controls below when the checkbox would force lateral overflow.
+        var reservedWidth = compactControlsBelow ? 0 : 28;
+        var reservedHeight = compactControlsBelow ? 28 : 14;
+        buttonWidth = clampResponsiveSize(contentWidth - reservedWidth, 36, Math.max(36, contentWidth));
+        buttonHeight = clampResponsiveSize(contentHeight - reservedHeight, 28, Math.max(28, contentHeight));
         iconSize = clampResponsiveSize(Math.min(buttonWidth, buttonHeight) * 0.48, 16, 34);
     } else {
         // Full mode appears as soon as the main controls fit, then scales the square button up.

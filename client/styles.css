@@ -3,7 +3,7 @@
  * Dark theme compatible with Premiere Pro UI
  *
  * @author CyrilG93
- * @version 1.2.4
+ * @version 1.2.5
  */
 
 :root {
@@ -298,6 +298,19 @@ body[data-layout="compact"] .controls-row {
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
+}
+
+body[data-layout="compact"][data-compact-controls="below"] .control-cluster {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+
+body[data-layout="compact"][data-compact-controls="below"] .controls-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: var(--export-button-width);
 }
 
 /* Modal Overlay */
