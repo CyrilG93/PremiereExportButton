@@ -3,7 +3,7 @@
  * Handles export to Adobe Media Encoder
  *
  * @author CyrilG93
- * @version 1.2.1
+ * @version 1.2.2
  */
 
 /**
@@ -77,6 +77,44 @@ function ExportButton_getDefaultPresetPaths() {
             error: e.toString()
         });
     }
+}
+
+/**
+ * Validate a preset path before export without blocking known macOS false negatives.
+ * @param {string} presetPath - Path to the preset file
+ * @param {boolean} panelPresetExists - Whether the CEP panel already verified the file
+ * @returns {object} Validation result used by export functions
+ */
+function ExportButton_validatePresetAccess(presetPath, panelPresetExists) {
+    // ExtendScript can report false for files in protected macOS folders even when CEP Node can read them.
+    var presetFile = new File(presetPath);
+    var hostPresetExists = presetFile.exists;
+
+    if (hostPresetExists) {
+        return {
+            success: true,
+            path: presetPath,
+            hostPresetExists: true,
+            panelPresetExists: panelPresetExists === true
+        };
+    }
+
+    if (panelPresetExists === true) {
+        return {
+            success: true,
+            path: presetPath,
+            hostPresetExists: false,
+            panelPresetExists: true,
+            warning: "Premiere could not verify the preset, but the CEP panel confirmed it exists."
+        };
+    }
+
+    return {
+        success: false,
+        error: "Preset file not found: " + presetPath,
+        hostPresetExists: false,
+        panelPresetExists: panelPresetExists === true
+    };
 }
 
 /**
@@ -301,7 +339,7 @@ function ExportButton_getSequenceName() {
 /**
  * EXPORT FILE - With Windows path normalization
  */
-function ExportButton_exportToAME(outputPath, presetPath) {
+function ExportButton_exportToAME(outputPath, presetPath, panelPresetExists) {
     try {
         // Check if encoder is available
         if (!app.encoder) {
@@ -326,13 +364,10 @@ function ExportButton_exportToAME(outputPath, presetPath) {
             presetPath = presetPath.replace(/\//g, "\\");
         }
 
-        // Verify preset file exists
-        var presetFile = new File(presetPath);
-        if (!presetFile.exists) {
-            return JSON.stringify({
-                success: false,
-                error: "Preset file not found: " + presetPath
-            });
+        // Verify the preset while allowing CEP-confirmed paths that ExtendScript cannot see.
+        var presetAccess = ExportButton_validatePresetAccess(presetPath, panelPresetExists);
+        if (!presetAccess.success) {
+            return JSON.stringify(presetAccess);
         }
 
         // Queue the export to Adobe Media Encoder
@@ -349,6 +384,7 @@ function ExportButton_exportToAME(outputPath, presetPath) {
             return JSON.stringify({
                 success: true,
                 jobID: jobID,
+                presetWarning: presetAccess.warning || "",
                 message: "Export started"
             });
         } else {
@@ -452,7 +488,7 @@ function ExportButton_hasVideoForSequence(sequenceName) {
  * @param {string} presetPath - Path to the preset file
  * @returns {string} JSON string with result
  */
-function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath) {
+function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath, panelPresetExists) {
     try {
         // Check if encoder is available
         if (!app.encoder) {
@@ -478,13 +514,10 @@ function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath)
             presetPath = presetPath.replace(/\//g, "\\");
         }
 
-        // Verify preset file exists
-        var presetFile = new File(presetPath);
-        if (!presetFile.exists) {
-            return JSON.stringify({
-                success: false,
-                error: "Preset file not found: " + presetPath
-            });
+        // Verify the preset while allowing CEP-confirmed paths that ExtendScript cannot see.
+        var presetAccess = ExportButton_validatePresetAccess(presetPath, panelPresetExists);
+        if (!presetAccess.success) {
+            return JSON.stringify(presetAccess);
         }
 
         // Queue the export
@@ -501,6 +534,7 @@ function ExportButton_exportSequenceByName(sequenceName, outputPath, presetPath)
             return JSON.stringify({
                 success: true,
                 jobID: jobID,
+                presetWarning: presetAccess.warning || "",
                 sequenceName: sequenceName
             });
         } else {
@@ -855,7 +889,7 @@ function ExportButton_getProjectExportsPathWithDepth(customFolderName, depth) {
  * @param {string} presetPath - Preset file path
  * @param {boolean} useInOut - If true, export only In/Out range
  */
-function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
+function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut, panelPresetExists) {
     try {
         if (!app.encoder) {
             return JSON.stringify({
@@ -879,13 +913,10 @@ function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
             presetPath = presetPath.replace(/\//g, "\\");
         }
 
-        // Verify preset
-        var presetFile = new File(presetPath);
-        if (!presetFile.exists) {
-            return JSON.stringify({
-                success: false,
-                error: "Preset file not found: " + presetPath
-            });
+        // Verify the preset while allowing CEP-confirmed paths that ExtendScript cannot see.
+        var presetAccess = ExportButton_validatePresetAccess(presetPath, panelPresetExists);
+        if (!presetAccess.success) {
+            return JSON.stringify(presetAccess);
         }
 
         // encodeSequence parameter: 0 = entire sequence, 1 = work area (In/Out)
@@ -904,6 +935,7 @@ function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
             return JSON.stringify({
                 success: true,
                 jobID: jobID,
+                presetWarning: presetAccess.warning || "",
                 message: "Export started"
             });
         } else {
@@ -932,7 +964,7 @@ function ExportButton_exportToAMEWithOptions(outputPath, presetPath, useInOut) {
  * @param {boolean} useInOut - If true, export only In/Out range
  * @returns {string} JSON string with result
  */
-function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
+function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut, panelPresetExists) {
     try {
         var seq = app.project.activeSequence;
         if (!seq) {
@@ -956,13 +988,10 @@ function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
             presetPath = presetPath.replace(/\\/g, "/");
         }
 
-        // Verify preset file exists
-        var presetFile = new File(presetPath);
-        if (!presetFile.exists) {
-            return JSON.stringify({
-                success: false,
-                error: "Preset file not found: " + presetPath
-            });
+        // Verify the preset while allowing CEP-confirmed paths that ExtendScript cannot see.
+        var presetAccess = ExportButton_validatePresetAccess(presetPath, panelPresetExists);
+        if (!presetAccess.success) {
+            return JSON.stringify(presetAccess);
         }
 
         // Create output directory if it doesn't exist
@@ -996,6 +1025,7 @@ function ExportButton_exportDirectInPremiere(outputPath, presetPath, useInOut) {
             return JSON.stringify({
                 success: true,
                 message: "Export completed",
+                presetWarning: presetAccess.warning || "",
                 fileExists: fileCreated
             });
         } else {

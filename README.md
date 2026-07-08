@@ -186,7 +186,7 @@ The built-in debug panel shows detailed logs. Common issues:
 
 | Issue | Solution |
 |-------|----------|
-| **Preset not found** | Check the preset path in Settings |
+| **Preset not found** | Check the preset path in Settings. On macOS, also allow Premiere Pro and Adobe Media Encoder to access Documents if your presets are stored there |
 | **AME not available** | Ensure Adobe Media Encoder is installed |
 | **Unknown exception** | Usually a path issue on Windows - check debug log |
 | **No active sequence** | Open a sequence in the timeline or select in Project panel |

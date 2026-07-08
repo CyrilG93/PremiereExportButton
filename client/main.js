@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.1
+ * @version 1.2.2
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.1';
+let CURRENT_VERSION = '1.2.2';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -1012,12 +1012,16 @@ function handleBatchExport(sequences) {
                     // Always pass a real file extension so Adobe does not truncate names containing dots.
                     var finalOutputPath = buildExportOutputPath(outputPath, presetPath, hasVideo);
 
+                    // Check the preset from the panel so host.jsx can bypass ExtendScript false negatives.
+                    var panelPresetExists = panelCanAccessPreset(presetPath);
+                    debugLog('Panel preset exists: ' + panelPresetExists, panelPresetExists ? 'info' : 'warning');
+
                     // Escape for ExtendScript
                     var escapedOutput = finalOutputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                     var escapedPreset = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                     var escapedSeqName = seqName.replace(/'/g, "\\'");
 
-                    var script = "ExportButton_exportSequenceByName('" + escapedSeqName + "', '" + escapedOutput + "', '" + escapedPreset + "')";
+                    var script = "ExportButton_exportSequenceByName('" + escapedSeqName + "', '" + escapedOutput + "', '" + escapedPreset + "', " + panelPresetExists + ")";
                     debugLog('Queueing: ' + finalOutputPath.split(/[/\\]/).pop(), 'info');
 
                     csInterface.evalScript(script, function (exportResult) {
@@ -1368,6 +1372,21 @@ function buildExportOutputPath(outputPath, presetPath, hasVideo) {
 }
 
 /**
+ * Check preset visibility from the CEP panel before Premiere validates it.
+ * @param {string} presetPath - Path to the preset file
+ * @returns {boolean} Whether Node can access the preset file
+ */
+function panelCanAccessPreset(presetPath) {
+    // Node runs in the CEP panel and can confirm files that ExtendScript may not see in protected macOS folders.
+    try {
+        return !!(presetPath && fs.existsSync(presetPath));
+    } catch (e) {
+        debugLog('Panel preset check failed: ' + e.message, 'error');
+        return false;
+    }
+}
+
+/**
  * Execute the export via Adobe Media Encoder or directly in Premiere
  * @param {string} outputPath - Full output path (without extension)
  * @param {string} presetPath - Path to the preset file
@@ -1392,6 +1411,10 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     var finalOutputPath = buildExportOutputPath(outputPath, presetPath, hasVideo);
     debugLog('Resolved output path: ' + finalOutputPath, 'info');
 
+    // Check the preset from the panel so host.jsx can bypass ExtendScript false negatives.
+    var panelPresetExists = panelCanAccessPreset(presetPath);
+    debugLog('Panel preset exists: ' + panelPresetExists, panelPresetExists ? 'info' : 'warning');
+
     // Escape paths for ExtendScript
     var escapedOutputPath = finalOutputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var escapedPresetPath = presetPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -1402,10 +1425,10 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
     // Choose export method based on setting
     var script;
     if (premiereDirect) {
-        script = "ExportButton_exportDirectInPremiere('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+        script = "ExportButton_exportDirectInPremiere('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ", " + panelPresetExists + ")";
         debugLog('Using Premiere Direct export', 'info');
     } else {
-        script = "ExportButton_exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ")";
+        script = "ExportButton_exportToAMEWithOptions('" + escapedOutputPath + "', '" + escapedPresetPath + "', " + useInOut + ", " + panelPresetExists + ")";
         debugLog('Using AME export', 'info');
     }
     debugLog('Script: ' + script, 'info');
