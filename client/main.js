@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.7
+ * @version 1.2.8
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.7';
+let CURRENT_VERSION = '1.2.8';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -37,6 +37,10 @@ const https = require('https');
 var hostLocale = 'en_US'; // Default
 var panelLayoutObserver = null;
 var CEP_THEME_COLOR_CHANGED_EVENT = 'com.adobe.csxs.events.ThemeColorChanged';
+var SPELLBOOK_PLUGIN_NAME = 'Export Button';
+var SPELLBOOK_PLUGIN_ID = 'com.cyrilg93.exportbutton.panel';
+var SPELLBOOK_GROUP_NAME = 'Export Button';
+var spellbookInstance = null;
 
 function clampThemeChannel(value) {
     // Keep CEP RGB channels inside the valid CSS color range.
@@ -296,6 +300,9 @@ function init() {
     // Setup event listeners
     setupEventListeners();
 
+    // Register external shortcut commands after the UI handlers exist.
+    initializeSpellbook();
+
     // Keep the panel usable even when Premiere resizes it aggressively.
     setupResponsivePanelLayout();
 
@@ -379,6 +386,241 @@ function debugLog(message, type) {
 
     logEl.appendChild(entry);
     logEl.scrollTop = logEl.scrollHeight;
+}
+
+/**
+ * Build the four export combinations exposed to SpellBook.
+ * @returns {Array} Command descriptors consumed by SpellBook
+ */
+function getSpellbookCommands() {
+    return [
+        {
+            commandID: 'premiereExportButton.ame.videoAudio',
+            name: 'Export AME Video+Audio',
+            group: SPELLBOOK_GROUP_NAME,
+            action: function () {
+                runSpellbookExportCommand('ame-video-audio');
+            }
+        },
+        {
+            commandID: 'premiereExportButton.ame.audioOnly',
+            name: 'Export AME Audio Only',
+            group: SPELLBOOK_GROUP_NAME,
+            action: function () {
+                runSpellbookExportCommand('ame-audio-only');
+            }
+        },
+        {
+            commandID: 'premiereExportButton.premiere.videoAudio',
+            name: 'Export Premiere Video+Audio',
+            group: SPELLBOOK_GROUP_NAME,
+            action: function () {
+                runSpellbookExportCommand('premiere-video-audio');
+            }
+        },
+        {
+            commandID: 'premiereExportButton.premiere.audioOnly',
+            name: 'Export Premiere Audio Only',
+            group: SPELLBOOK_GROUP_NAME,
+            action: function () {
+                runSpellbookExportCommand('premiere-audio-only');
+            }
+        }
+    ];
+}
+
+/**
+ * Route SpellBook command ids into the same export pipeline used by the panel.
+ * @param {string} commandName - Stable internal command name
+ */
+function runSpellbookExportCommand(commandName) {
+    // Keep the external shortcut behavior explicit and independent from saved UI mode settings.
+    var commandMap = {
+        'ame-video-audio': {
+            mode: 'ame',
+            hasVideo: true,
+            label: 'AME Video+Audio'
+        },
+        'ame-audio-only': {
+            mode: 'ame',
+            hasVideo: false,
+            label: 'AME Audio Only'
+        },
+        'premiere-video-audio': {
+            mode: 'premiere',
+            hasVideo: true,
+            label: 'Premiere Video+Audio'
+        },
+        'premiere-audio-only': {
+            mode: 'premiere',
+            hasVideo: false,
+            label: 'Premiere Audio Only'
+        }
+    };
+    var exportOptions = commandMap[commandName];
+
+    if (!exportOptions) {
+        debugLog('Unknown SpellBook command: ' + commandName, 'error');
+        return;
+    }
+
+    debugLog('SpellBook command: ' + exportOptions.label, 'info');
+    handleForcedSingleExport(exportOptions);
+}
+
+/**
+ * Try the official SpellBook CEP package first when it is bundled or available.
+ * @returns {function|null} SpellBook constructor or null
+ */
+function loadOfficialSpellbookConstructor() {
+    if (typeof require !== 'function') {
+        return null;
+    }
+
+    try {
+        // The optional package is not required for end users because the CEP fallback below mirrors its events.
+        var spellbookModule = require('@knights-of-the-editing-table/spell-book');
+        var Spellbook = spellbookModule && (spellbookModule.default || spellbookModule);
+        return typeof Spellbook === 'function' ? Spellbook : null;
+    } catch (e) {
+        debugLog('SpellBook npm module unavailable, using CEP fallback: ' + e.message, 'info');
+        return null;
+    }
+}
+
+/**
+ * Dispatch a CEP event using the payload shape expected by SpellBook.
+ * @param {string} type - CEP event type
+ * @param {object} data - Serializable SpellBook payload
+ * @returns {boolean} Whether dispatch was possible
+ */
+function dispatchSpellbookCepEvent(type, data) {
+    if (!window.__adobe_cep__ || typeof window.__adobe_cep__.dispatchEvent !== 'function') {
+        return false;
+    }
+
+    var appId = 'PPRO';
+    try {
+        var hostEnvironment = JSON.parse(window.__adobe_cep__.getHostEnvironment());
+        appId = hostEnvironment.appId || appId;
+    } catch (e) {
+        debugLog('SpellBook host environment parse failed: ' + e.message, 'warning');
+    }
+
+    window.__adobe_cep__.dispatchEvent({
+        type: type,
+        scope: 'APPLICATION',
+        appId: appId,
+        extensionId: window.__adobe_cep__.getExtensionId(),
+        data: JSON.stringify(data)
+    });
+
+    return true;
+}
+
+/**
+ * Create a lightweight SpellBook bridge for CEP when the npm package is absent.
+ * @param {string} pluginName - Visible section name in SpellBook
+ * @param {string} pluginID - Stable extension id
+ * @param {Array} commands - Commands to register
+ * @returns {object} Fallback SpellBook bridge
+ */
+function createSpellbookCepFallback(pluginName, pluginID, commands) {
+    return {
+        pluginName: pluginName,
+        pluginID: pluginID,
+        commands: commands || [],
+        commandListener: null,
+        appOpenedListener: null,
+        register: function (commandList) {
+            // Register all commands so SpellBook can list them for shortcuts and surfaces.
+            this.commands = commandList || [];
+            return dispatchSpellbookCepEvent('knights_of_the_editing_table.spellbook.api.commands.add', {
+                pluginID: this.pluginID,
+                name: this.pluginName,
+                commands: this.commands
+            });
+        },
+        start: function () {
+            if (!window.__adobe_cep__ || typeof window.__adobe_cep__.addEventListener !== 'function') {
+                return false;
+            }
+
+            this.stop();
+
+            var self = this;
+            var eventType = 'knights_of_the_editing_table.spellbook.api.' + this.pluginID + '.command.registered';
+            this.commandListener = function (event) {
+                // SpellBook sends the commandID as event.data when a shortcut is triggered.
+                var commandID = event && event.data;
+                for (var i = 0; i < self.commands.length; i++) {
+                    var command = self.commands[i];
+                    if (command.commandID === commandID && typeof command.action === 'function') {
+                        command.action();
+                        return;
+                    }
+                }
+            };
+            this.appOpenedListener = function () {
+                // Re-register when SpellBook opens after the panel is already loaded.
+                self.register(self.commands);
+            };
+
+            window.__adobe_cep__.addEventListener(eventType, this.commandListener);
+            window.__adobe_cep__.addEventListener('knights_of_the_editing_table.spellbook.app.opened', this.appOpenedListener);
+            return true;
+        },
+        stop: function () {
+            if (!window.__adobe_cep__ || typeof window.__adobe_cep__.removeEventListener !== 'function') {
+                return;
+            }
+
+            var eventType = 'knights_of_the_editing_table.spellbook.api.' + this.pluginID + '.command.registered';
+            if (this.commandListener) {
+                window.__adobe_cep__.removeEventListener(eventType, this.commandListener);
+            }
+            if (this.appOpenedListener) {
+                window.__adobe_cep__.removeEventListener('knights_of_the_editing_table.spellbook.app.opened', this.appOpenedListener);
+            }
+            this.commandListener = null;
+            this.appOpenedListener = null;
+        }
+    };
+}
+
+/**
+ * Register the extension export commands with SpellBook.
+ */
+function initializeSpellbook() {
+    if (spellbookInstance) {
+        return;
+    }
+
+    if (!window.__adobe_cep__) {
+        debugLog('SpellBook skipped: CEP bridge unavailable', 'warning');
+        return;
+    }
+
+    var commands = getSpellbookCommands();
+    var Spellbook = loadOfficialSpellbookConstructor();
+
+    try {
+        if (Spellbook) {
+            // Use the official package when present in the CEP runtime.
+            spellbookInstance = new Spellbook(SPELLBOOK_PLUGIN_NAME, SPELLBOOK_PLUGIN_ID, commands);
+            spellbookInstance.register(commands);
+        } else {
+            // Keep support working without node_modules in the installed extension.
+            spellbookInstance = createSpellbookCepFallback(SPELLBOOK_PLUGIN_NAME, SPELLBOOK_PLUGIN_ID, commands);
+            spellbookInstance.start();
+            spellbookInstance.register(commands);
+        }
+
+        debugLog('SpellBook commands registered: Export AME Video+Audio, Export AME Audio Only, Export Premiere Video+Audio, Export Premiere Audio Only', 'info');
+    } catch (e) {
+        spellbookInstance = null;
+        debugLog('SpellBook initialization failed: ' + e.message, 'warning');
+    }
 }
 
 /**
@@ -1080,6 +1322,60 @@ function handleSingleExport() {
 }
 
 /**
+ * Handle a single active-sequence export with a forced SpellBook combo.
+ * @param {object} exportOptions - Forced export settings
+ */
+function handleForcedSingleExport(exportOptions) {
+    setStatus('Checking...', 'warning');
+    debugLog('Calling getActiveSequence() for ' + exportOptions.label + '...', 'info');
+
+    csInterface.evalScript('ExportButton_getActiveSequence()', function (result) {
+        debugLog('getActiveSequence result: ' + result, result ? 'info' : 'error');
+
+        try {
+            if (!result || result === 'undefined' || result.indexOf('Error') === 0 || result.indexOf('EvalScript') === 0) {
+                setStatus('Script error - check log', 'error');
+                debugLog('ExtendScript error: ' + result, 'error');
+                return;
+            }
+
+            var seqInfo = JSON.parse(result);
+            if (!seqInfo.success) {
+                setStatus(seqInfo.error || 'No active sequence', 'error');
+                debugLog('No active sequence: ' + seqInfo.error, 'error');
+                return;
+            }
+
+            exportForcedMediaKind(seqInfo.name, exportOptions);
+        } catch (e) {
+            setStatus('Error: ' + e.message, 'error');
+            debugLog('Parse error: ' + e.message + ' | Raw result: ' + result, 'error');
+        }
+    });
+}
+
+/**
+ * Select the requested preset type and continue through normal output naming.
+ * @param {string} sequenceName - Name of the active sequence
+ * @param {object} exportOptions - Forced export settings
+ */
+function exportForcedMediaKind(sequenceName, exportOptions) {
+    // SpellBook commands intentionally force video+audio or audio-only instead of auto-detecting tracks.
+    var hasVideo = exportOptions.hasVideo === true;
+    var presetPath = hasVideo
+        ? (Persistence.get(STORAGE_KEYS.VIDEO_PRESET) || defaultPresets.video)
+        : (Persistence.get(STORAGE_KEYS.AUDIO_PRESET) || defaultPresets.audio);
+
+    if (!presetPath) {
+        setStatus('No preset configured', 'error');
+        openSettingsModal();
+        return;
+    }
+
+    determineOutputPath(sequenceName, presetPath, hasVideo, exportOptions);
+}
+
+/**
  * Check if sequence has video and proceed with export
  * @param {string} sequenceName - Name of the sequence
  */
@@ -1117,8 +1413,9 @@ function checkVideoAndExport(sequenceName) {
  * @param {string} sequenceName - Name of the sequence
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether the sequence has video
+ * @param {object=} exportOptions - Optional forced export settings
  */
-function determineOutputPath(sequenceName, presetPath, hasVideo) {
+function determineOutputPath(sequenceName, presetPath, hasVideo, exportOptions) {
     var downloadEnabled = document.getElementById('download-checkbox').checked;
 
     // Clean sequence name for use as filename
@@ -1133,14 +1430,14 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
         // Check for fixed folder path
         if (fixedFolder && fixedFolder.trim() !== '') {
             // Use custom fixed folder
-            getVersionedFilenameAndExport(fixedFolder, cleanName, presetPath, hasVideo);
+            getVersionedFilenameAndExport(fixedFolder, cleanName, presetPath, hasVideo, exportOptions);
         } else {
             // Use default Downloads folder
             csInterface.evalScript('ExportButton_getSystemInfo()', function (result) {
                 try {
                     var info = JSON.parse(result);
                     var folderPath = info.downloadsPath;
-                    getVersionedFilenameAndExport(folderPath, cleanName, presetPath, hasVideo);
+                    getVersionedFilenameAndExport(folderPath, cleanName, presetPath, hasVideo, exportOptions);
                 } catch (e) {
                     setStatus('Error getting downloads path', 'error');
                 }
@@ -1158,7 +1455,7 @@ function determineOutputPath(sequenceName, presetPath, hasVideo) {
                     return;
                 }
 
-                getVersionedFilenameAndExport(pathInfo.path, cleanName, presetPath, hasVideo);
+                getVersionedFilenameAndExport(pathInfo.path, cleanName, presetPath, hasVideo, exportOptions);
 
             } catch (e) {
                 setStatus('Error: ' + e.message, 'error');
@@ -1212,8 +1509,9 @@ function parseSuffixPattern(pattern, version, sequenceName) {
  * @param {string} baseName - Base name of the file (sequence name)
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether the sequence has video
+ * @param {object=} exportOptions - Optional forced export settings
  */
-function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVideo) {
+function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVideo, exportOptions) {
     // Determine extension based on preset
     var extension = hasVideo ? "mp4" : "wav";
 
@@ -1245,13 +1543,13 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
                 var finalPath = folderPath + sep + finalFilename;
 
                 debugLog('Version found: ' + finalFilename, 'info');
-                executeExport(finalPath, presetPath, hasVideo, finalFilename);
+                executeExport(finalPath, presetPath, hasVideo, finalFilename, exportOptions);
             } else {
                 debugLog('Versioning error: ' + info.error, 'error');
                 // Fallback to V1
                 var fallbackName = parseSuffixPattern(namingPattern, 1, baseName);
                 var fullPath = folderPath + sep + fallbackName;
-                executeExport(fullPath, presetPath, hasVideo, fallbackName);
+                executeExport(fullPath, presetPath, hasVideo, fallbackName, exportOptions);
             }
         } catch (e) {
             setStatus('Error getting version', 'error');
@@ -1259,7 +1557,7 @@ function getVersionedFilenameAndExport(folderPath, baseName, presetPath, hasVide
             // Fallback with default pattern
             var fallbackName = parseSuffixPattern('{SEQ}_V1', 1, baseName);
             var fullPath = folderPath + sep + fallbackName;
-            executeExport(fullPath, presetPath, hasVideo, fallbackName);
+            executeExport(fullPath, presetPath, hasVideo, fallbackName, exportOptions);
         }
     });
 }
@@ -1381,8 +1679,9 @@ function panelCanAccessPreset(presetPath) {
  * @param {string} presetPath - Path to the preset file
  * @param {boolean} hasVideo - Whether export includes video
  * @param {string} versionedName - The versioned filename for display
+ * @param {object=} exportOptions - Optional forced export settings
  */
-function executeExport(outputPath, presetPath, hasVideo, versionedName) {
+function executeExport(outputPath, presetPath, hasVideo, versionedName, exportOptions) {
     debugLog('executeExport called', 'info');
     debugLog('Output path: ' + outputPath, 'info');
     debugLog('Preset path: ' + presetPath, 'info');
@@ -1392,7 +1691,8 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
 
     // Get settings
     var useInOut = Persistence.get(STORAGE_KEYS.INOUT_EXPORT) === 'true';
-    var premiereDirect = Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
+    var forcedMode = exportOptions && exportOptions.mode ? exportOptions.mode : null;
+    var premiereDirect = forcedMode ? forcedMode === 'premiere' : Persistence.get(STORAGE_KEYS.PREMIERE_DIRECT) === 'true';
     debugLog('Use In/Out: ' + useInOut, 'info');
     debugLog('Premiere Direct: ' + premiereDirect, 'info');
 
@@ -1429,12 +1729,12 @@ function executeExport(outputPath, presetPath, hasVideo, versionedName) {
             var exportResult = JSON.parse(result);
 
             if (exportResult.success) {
-                var type = hasVideo ? 'Video' : 'Audio';
                 var displayName = versionedName || 'export';
                 var inoutLabel = useInOut ? ' (In/Out)' : '';
                 var modeLabel = premiereDirect ? ' [Direct]' : '';
+                var sourceLabel = exportOptions && exportOptions.label ? ' [' + exportOptions.label + ']' : '';
                 setStatus(displayName + inoutLabel + modeLabel + ' started!', 'success');
-                debugLog('Export started successfully!', 'success');
+                debugLog('Export started successfully!' + sourceLabel, 'success');
             } else {
                 setStatus(exportResult.error || 'Export failed', 'error');
                 debugLog('Export failed: ' + exportResult.error, 'error');

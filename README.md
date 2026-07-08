@@ -16,6 +16,7 @@ A powerful CEP extension for quick, customizable exports via Adobe Media Encoder
 - **Folder depth** - Choose how far up from the project to create the export folder
 - **Fixed folder** - Export to a specific folder when needed
 - **Dual presets** - Separate presets for Video+Audio and Audio-only sequences
+- **SpellBook support** - Trigger AME or Premiere exports from SpellBook shortcuts and control surfaces
 - **Adaptive panel** - Button and checkbox resize together; narrow panels place the checkbox below the button
 - **Premiere Theme Support** - The panel follows Premiere Pro's light and dark interface colors
 - **Cross-platform** - Works on both macOS and Windows
@@ -151,6 +152,16 @@ Depth 2 → /Movies/EXPORTS/                   (two folders up)
 1. In the **Project panel**, select multiple sequences (Cmd/Ctrl+click)
 2. Click the export button
 3. All selected sequences are queued and exported together
+
+### SpellBook
+Install the official SpellBook app and extension from Knights of the Editing Table. Export Button registers four commands in the **Export Button** group:
+
+- **Export AME Video+Audio**
+- **Export AME Audio Only**
+- **Export Premiere Video+Audio**
+- **Export Premiere Audio Only**
+
+These commands use the same naming, folder, versioning, preset, and In/Out settings as the panel. The AME/Premiere mode and Video+Audio/Audio-only preset are forced by the command you choose.
 
 ---
 
