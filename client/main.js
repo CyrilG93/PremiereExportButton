@@ -3,7 +3,7 @@
  * Handles UI interactions and export logic
  *
  * @author CyrilG93
- * @version 1.2.3
+ * @version 1.2.4
  */
 
 // Global CSInterface instance
@@ -11,7 +11,7 @@ var csInterface = new CSInterface();
 
 // UPDATE SYSTEM CONSTANTS
 const GITHUB_REPO = 'CyrilG93/PremiereExportButton';
-let CURRENT_VERSION = '1.2.3';
+let CURRENT_VERSION = '1.2.4';
 
 // Storage keys
 var STORAGE_KEYS = {
@@ -638,6 +638,13 @@ function syncDebugPanelVisibility() {
 function getResponsivePanelLayout(width, height) {
     var fullMinWidth = 112;
     var fullMinHeight = 136;
+    var tallNarrowMinWidth = 142;
+    var isTallNarrow = height >= width * 1.25;
+
+    // Tall narrow panels need compact mode so the button can shrink laterally.
+    if (isTallNarrow && width < tallNarrowMinWidth) {
+        return 'compact';
+    }
 
     // Full mode should depend on usable space, not on a near-square panel ratio.
     return width >= fullMinWidth && height >= fullMinHeight ? 'full' : 'compact';
